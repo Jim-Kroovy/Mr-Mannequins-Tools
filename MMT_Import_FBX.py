@@ -141,22 +141,29 @@ def A_Convert_By_Child(armature, target, no_parents, loc_bones, a_name):
     # remove the added constraints once keyframing has been completed...
     if "root" in no_parents:
         target.pose.bones["CB_root"].constraints.remove(target.pose.bones["CB_root"].constraints["MMT_CHILD_OF"])
+    extra_bones = []
     for a_bone in armature.pose.bones:
-        t_bone = target.pose.bones["CB_" + a_bone.name]
-        if t_bone.constraints.get("MMT_LIMIT_LOC") != None:
-            t_bone.constraints.remove(t_bone.constraints["MMT_LIMIT_LOC"])
-        if t_bone.constraints.get("MMT_LIMIT_LOC_FIX") != None:
-            t_bone.constraints.remove(t_bone.constraints["MMT_LIMIT_LOC_FIX"])
-        if t_bone.constraints.get("MMT_LIMIT_ROT") != None:
-            t_bone.constraints.remove(t_bone.constraints["MMT_LIMIT_ROT"])
-        if t_bone.constraints.get("MMT_CHILD_OF") != None:
-            t_bone.constraints.remove(t_bone.constraints["MMT_CHILD_OF"])    
+        if "CB_" + a_bone.name in target.pose.bones:
+            t_bone = target.pose.bones["CB_" + a_bone.name]
+            if t_bone.constraints.get("MMT_LIMIT_LOC") != None:
+                t_bone.constraints.remove(t_bone.constraints["MMT_LIMIT_LOC"])
+            if t_bone.constraints.get("MMT_LIMIT_LOC_FIX") != None:
+                t_bone.constraints.remove(t_bone.constraints["MMT_LIMIT_LOC_FIX"])
+            if t_bone.constraints.get("MMT_LIMIT_ROT") != None:
+                t_bone.constraints.remove(t_bone.constraints["MMT_LIMIT_ROT"])
+            if t_bone.constraints.get("MMT_CHILD_OF") != None:
+                t_bone.constraints.remove(t_bone.constraints["MMT_CHILD_OF"])
+        else:
+            extra_bones.append(a_bone.name)    
     # reset the targets armature layers to what was open when we started...
     target.data.layers = layers
     # remove the imported animation...
     bpy.data.actions.remove(action)
     # return to object mode... (only needed if batch importing?)
-    bpy.ops.object.mode_set(mode='OBJECT') 
+    bpy.ops.object.mode_set(mode='OBJECT')
+    # print any extra bones...
+    if len(extra_bones) > 0:
+        print("These bones do not exist in the default mannequin armature: ", extra_bones[:], " Animation has not been imported/converted for them") 
 
 # scales the time/length of the imported animation in the dopesheet...    
 def A_Scale_Keyframes(pre_fps, post_fps, offset):

@@ -868,7 +868,8 @@ class JK_OT_L_Mesh(Operator):
         MMT.MMT_last_active = context.object.name
         unit_scale = scene.unit_settings.scale_length
         #name_start = (15 if "MANNEQUIN" in filename else 9)
-        obj_name = os.path.basename(MMT.L_meshes)[(15 if "MANNEQUIN" in MMT.L_meshes else 9):-6]
+        #obj_name = os.path.basename(MMT.L_meshes)[(15 if "MANNEQUIN" in MMT.L_meshes else 9):-6]
+        obj_name = bpy.path.display_name_from_filepath(MMT.L_meshes)[(15 if "MANNEQUIN" in MMT.L_meshes else 9):]
         with bpy.data.libraries.load(MMT.L_meshes, link=False, relative=False) as (data_from, data_to):
             data_to.objects = [name for name in data_from.objects if name == obj_name]
             data_to.texts = [name for name in data_from.texts if name == obj_name + ".py"]
@@ -944,7 +945,8 @@ class JK_OT_L_Material(Operator):
     def execute(self, context):
         scene = context.scene
         MMT = scene.JK_MMT
-        mat_name = os.path.basename(MMT.L_materials)[9:-6]
+        #mat_name = os.path.basename(MMT.L_materials)[9:-6]
+        mat_name = bpy.path.display_name_from_filepath(MMT.L_materials)[9:]
         if mat_name not in bpy.data.materials:
             with bpy.data.libraries.load(MMT.L_materials, link=False, relative=False) as (data_from, data_to):
                 data_to.materials = [name for name in data_from.materials if name == mat_name]
@@ -1013,7 +1015,8 @@ class JK_OT_L_Rig(Operator):
         scene = context.scene
         MMT = scene.JK_MMT
         unit_scale = scene.unit_settings.scale_length
-        rig_name = os.path.basename(MMT.L_rigs)[9:-6]
+        #rig_name = os.path.basename(MMT.L_rigs)[9:-6] - causing utf-8 errors on some systems??
+        rig_name = bpy.path.display_name_from_filepath(MMT.L_rigs)[9:] # does the same thing but should be utf-8 compatible...
         with bpy.data.libraries.load(MMT.L_rigs, link=False, relative=False) as (data_from, data_to):
             data_to.objects = [name for name in data_from.objects if name == rig_name]
             data_to.texts = [name for name in data_from.texts if name == rig_name + ".py"]
@@ -1022,7 +1025,7 @@ class JK_OT_L_Rig(Operator):
             if obj is not None:
                 bpy.context.collection.objects.link(obj)
                 bpy.context.view_layer.objects.active = obj
-                #obj.scale = [obj.scale[0] * unit_scale, obj.scale[1] * unit_scale, obj.scale[2] * unit_scale]
+                #obj.scale = [obj.scale[0] * unit_scale, obj.scale[1] * unit_scale, obj.scale[2] * unit_scale] - reversed scaling for saving?
                 obj.scale = [obj.scale[0] * (1 / unit_scale), obj.scale[1] * (1 / unit_scale), obj.scale[2] * (1 / unit_scale)]
                 if MMT.L_apply_scale_armatures:
                     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)

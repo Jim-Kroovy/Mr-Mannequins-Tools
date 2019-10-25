@@ -65,9 +65,9 @@ def Add_OffsetFK_IKvsFK_Digits(armature):
     # show all layers...
     layers = armature.data.layers[:]
     armature.data.layers = [True]*32
-    bpy.ops.pose.reveal(select=True)
+    bpy.ops.pose.reveal(select=False)
     # get the names of all the finger bones...
-    f_bones = [bone.name for bone in armature.pose.bones if any(name in bone.name for name in ["CB_thumb_0", "CB_index_0", "CB_middle_0", "CB_ring_0", "CB_pinky_0"])]
+    f_bones = [bone.name for bone in armature.pose.bones if any(bone.name.startswith(name) for name in ["CB_thumb_0", "CB_index_0", "CB_middle_0", "CB_ring_0", "CB_pinky_0"])]
     # these are the tail locations for the finger IK targets...
     f_target_tails = {"DT_index_l" : (0.6653876304626465, -0.09842129796743393, 0.9145689010620117),
         "DT_middle_l" : (0.694439709186554, -0.07562527060508728, 0.9048196077346802),
@@ -221,7 +221,7 @@ def Add_OffsetFK_IKvsFK_Limbs(armature):
     # show all armature layers...
     layers = armature.data.layers[:]
     armature.data.layers = [True]*32
-    bpy.ops.pose.reveal(select=True)
+    bpy.ops.pose.reveal(select=False)
     IK_owners = [data.Owner_name for data in armature.JK_MMT.IK_chain_data]    
     # deselect everything then select all the IK chain bones...
     bpy.ops.pose.select_all(action='DESELECT')
@@ -278,7 +278,7 @@ def Remove_OffsetFK_IKvsFK_Limbs(armature):
     # save current then show all target layers, we need the gizmo bone layer open to copy constraints...
     layers = armature.data.layers[:]
     armature.data.layers = [True]*32
-    bpy.ops.pose.reveal(select=True)
+    bpy.ops.pose.reveal(select=False)
     for bone in IK_owners:
         # deselect current selection and select the relevant bones...
         bpy.ops.pose.select_all(action='DESELECT')
