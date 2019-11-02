@@ -122,7 +122,7 @@ def Get_Imports_FBX(self, context, i_path):
     items = []
     if os.path.exists(bpy.path.abspath(i_path)):
         for filename in os.listdir(bpy.path.abspath(i_path)):
-            if filename.endswith(".FBX"):
+            if filename.upper().endswith(".FBX"):
                 items.append((os.path.join(i_path, filename), filename[:-4], os.path.join(i_path, filename)))
     return items            
 
