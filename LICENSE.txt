@@ -1,3 +1,13 @@
+                 Mr. Mannequins Tools License
+There are 2 components of Mr. Mannequins Tools, each licensed under different
+terms: the code, which is licensed under the GNU GPL below, and the source
+artwork, which is under the Unreal Engine EULA.
+
+            UNREAL ENGINE END USER LICENSE AGREEMENT
+The latest version of the Unreal Engine EULA can be found at:
+https://www.unrealengine.com/en-US/eula
+
+
                     GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 
