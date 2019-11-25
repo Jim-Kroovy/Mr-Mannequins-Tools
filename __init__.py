@@ -66,6 +66,12 @@ from bpy.app.handlers import persistent
 # MMT stands for Mr Mannequins Tools, E stands for export, I stands for import, S stands for Stash, L stands for Load, A stands for Add, O stands for option...
 # and JK/Jk/jk stands for Jim Kroovy and is the creator prefix i use for anything that might be used elsewhere... (makes for easier searching in most editing programs)
 
+# Dynamically generated EnumProperty items must be referenced from Python!!!
+# You must maintain a reference to dynamically generated EnumProperty items from Python or else Blender
+# will not behave properly (symptomps are garbage strings, utf-8 decode errors, and crashes). For more information, see:
+#    https://docs.blender.org/api/current/bpy.props.html?highlight=bpy%20props%20enumproperty#bpy.props.EnumProperty
+#    https://developer.blender.org/T50426
+
 #---------- FUNCTIONS --------------------------------------------------------------------------
 
 # one little message box function... (just in case)
@@ -103,6 +109,9 @@ def Get_Stashed_MMT(MMT_path, armature, S_path, type):
     return items
 
 # gets all the saved stash paths from add-on preferences...
+
+Get_Stashes_Result_Reference=[]
+
 def Get_Stashes(self, context):
     stashes = []
     prefs = bpy.context.preferences.addons["MrMannequinsTools"].preferences
@@ -112,6 +121,12 @@ def Get_Stashes(self, context):
                 stashes.append(stash)
             else:
                 prefs.S_paths.remove(stash)
+    
+    # There is a known bug with using a callback, Python must keep a reference to the strings returned by the callback or Blender will misbehave or even crash.
+    # https://docs.blender.org/api/current/bpy.props.html?highlight=bpy%20props%20enumproperty#bpy.props.EnumProperty
+    global Get_Stashes_Result_Reference
+    Get_Stashes_Result_Reference=stashes
+
     if len(stashes) > 0:
         return stashes
     else:
@@ -198,20 +213,39 @@ class JK_MMT_Prefs(AddonPreferences):
         row = layout.row()
         row.label(text="See tool panel for options")
 
+# There is a known bug with using a callback, Python must keep a reference to the strings returned by the callback or Blender will misbehave or even crash.
+# https://docs.blender.org/api/current/bpy.props.html?highlight=bpy%20props%20enumproperty#bpy.props.EnumProperty
+Get_Stashed_Armatures_Results_Reference = []
+Get_Stashed_Meshes_Results_Reference = []
+Get_Stashed_Materials_Results_Reference = []
+Get_Import_Animations_Results_Reference = []
+
 # all the main add-on options...
 class JK_MMT_Props(PropertyGroup):
     
     def Get_Stashed_Armatures(self, context):
-        return Get_Stashed_MMT(self.MMT_path, bpy.context.object, self.S_path, 'ARMATURE')
+        result = Get_Stashed_MMT(self.MMT_path, bpy.context.object, self.S_path, 'ARMATURE')
+        global Get_Stashed_Armatures_Results_Reference
+        Get_Stashed_Armatures_Results_Reference = result
+        return result
     
     def Get_Stashed_Meshes(self, context):
-        return Get_Stashed_MMT(self.MMT_path, bpy.context.object, self.S_path, 'MESH')
+        result = Get_Stashed_MMT(self.MMT_path, bpy.context.object, self.S_path, 'MESH')
+        global Get_Stashed_Meshes_Results_Reference
+        Get_Stashed_Meshes_Results_Reference = result
+        return result
     
     def Get_Stashed_Materials(self, context):
-        return Get_Stashed_MMT(self.MMT_path, bpy.context.object, self.S_path, 'MATERIAL')
+        result = Get_Stashed_MMT(self.MMT_path, bpy.context.object, self.S_path, 'MATERIAL')
+        global Get_Stashed_Materials_Results_Reference
+        Get_Stashed_Materials_Results_Reference = result
+        return result
     
     def Get_Import_Animations(self, context):
-        return Get_Imports_FBX(self, context, self.I_path_animations)   
+        result = Get_Imports_FBX(self, context, self.I_path_animations)   
+        global Get_Import_Animations_Results_Reference
+        Get_Import_Animations_Results_Reference = result
+        return result
   
     MMT_path: StringProperty(
         name="",
