@@ -21,9 +21,10 @@ import os
 # A stands for Animation
 
 #---------- FUNCTIONS -------------------------------------------------------------------------
-
+        
 # uses constraints to apply keyframes based on imported animation to the MMT rig...
-def A_Convert_By_Child(armature, target, no_parents, loc_bones, a_name):
+def A_Convert_By_Child(armature, target, no_parents, loc_bones, a_name, key_loc):
+    bpy.context.view_layer.objects.active = armature
     # get a reference to the imported animation...
     action = armature.animation_data.action
     # hop in and out of pose mode and clear the imported armatures transforms...
@@ -127,7 +128,10 @@ def A_Convert_By_Child(armature, target, no_parents, loc_bones, a_name):
     for i in range(int(action.frame_range[0]), int(action.frame_range[1] + 1)):
         bpy.context.scene.frame_set(i)
         bpy.ops.pose.transforms_clear()
-        bpy.ops.anim.keyframe_insert_menu(type='BUILTIN_KSI_VisualLocRot')
+        if key_loc:
+            bpy.ops.anim.keyframe_insert_menu(type='BUILTIN_KSI_VisualLocRot')
+        else:
+            bpy.ops.anim.keyframe_insert_menu(type='BUILTIN_KSI_VisualRot')
         # maybe keyframe some things on the first frame...
         if i == int(action.frame_range[0]):
             if bpy.context.scene.JK_MMT.I_key_controls:
@@ -182,87 +186,113 @@ def A_Scale_Keyframes(pre_fps, post_fps, offset):
     # set the render fps to what it was before importing...
     bpy.context.scene.render.fps = pre_fps
 
+
+def I_Animation(target, MMT, name):
+    # get the render FPS before importing...
+    pre_import_fps = bpy.context.scene.render.fps
+    # import the fbx...
+    bpy.ops.import_scene.fbx(filepath=os.path.join(bpy.path.abspath(MMT.I_path_animations), name), directory="", filter_glob="*.fbx", use_manual_orientation=False, global_scale=1.0, bake_space_transform=False, use_custom_normals=True, use_image_search=True, use_alpha_decals=False, decal_offset=0.0, use_anim=True, anim_offset=MMT.I_frame_offset, use_custom_props=MMT.I_user_props, use_custom_props_enum_as_string=True, ignore_leaf_bones=False, force_connect_children=False, automatic_bone_orientation=False, primary_bone_axis='Y', secondary_bone_axis='X', use_prepost_rot=True, axis_forward='-Z', axis_up='Y')                  
+    # once imported all new objects will be selected so save a reference to them...
+    new_objects = bpy.context.selected_objects
+    # get the render FPS after importing...
+    post_import_fps = bpy.context.scene.render.fps
+    if target.JK_MMT.Rig_type not in ['NONE', 'TEMPLATE']:
+        # get a reference to the imported armature... (There shouldn't be more than one armature, if there is get the first one with animation data)            
+        anim_armature = None
+        for obj in bpy.context.selected_objects:
+            if obj.type == 'ARMATURE' and obj.animation_data:
+                anim_armature = obj
+                break                 
+        # if an armature was imported with animation data...
+        if anim_armature != None:
+            # if we want to scale the keyframes to fit our fps before conversion to Mr Mannequin...
+            if MMT.I_pre_scale_keyframes:
+                A_Scale_Keyframes(pre_import_fps, post_import_fps, MMT.I_frame_offset)
+            # convert the action on to the Mr Mannequin Rig...
+            A_Convert_By_Child(anim_armature, target, [("root" if MMT.I_root_motion else "pelvis")], ["lowerarm_twist_01_l", "lowerarm_twist_01_r", "upperarm_twist_01_l", "upperarm_twist_01_r", "ball_l", "ball_r"], name[:-4], MMT.I_key_location)
+            # or if we want to scale the keyframes to fit our fps after conversion to Mr Mannequin...
+            if not MMT.I_pre_scale_keyframes:
+                A_Scale_Keyframes(pre_import_fps, post_import_fps, MMT.I_frame_offset)
+        # if there was no anim data let us know...
+        else:
+            print("No animation to convert!")
+    else:
+        print("Animation import only currently supported for the default and re-targeted rigs")        
+    # once finished remove all the objects that got imported...
+    for obj in new_objects:        
+        bpy.data.objects.remove(obj, do_unlink=True)
+
+def I_Mesh(target, MMT, name):    
+    # import the .fbx without animation and apply everything...    
+    bpy.ops.import_scene.fbx(filepath=os.path.join(bpy.path.abspath(MMT.I_path_meshes), name), directory="", filter_glob="*.fbx", use_manual_orientation=False, global_scale=1.0, bake_space_transform=False, use_custom_normals=True, use_image_search=True, use_alpha_decals=False, decal_offset=0.0, use_anim=False, anim_offset=MMT.I_frame_offset, use_custom_props=MMT.I_user_props, use_custom_props_enum_as_string=True, ignore_leaf_bones=False, force_connect_children=False, automatic_bone_orientation=False, primary_bone_axis='Y', secondary_bone_axis='X', use_prepost_rot=True, axis_forward='-Z', axis_up='Y')                  
+    # apply the scale...
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    # if we are trying to rig the mesh to the active MMT rig...
+    if MMT.I_rig_to_active:
+        imported_objects = bpy.context.selected_objects
+        new_meshes = []
+        new_armature = None
+        # for each new object...
+        for obj in bpy.context.selected_objects:
+            # if it's a mesh... 
+            if obj.type == 'MESH':
+                # iterate through modifiers...
+                for modifier in obj.modifiers:
+                    # if the modifier is an armature one
+                    if modifier.type == 'ARMATURE':
+                        # assign the new armature if it hasn't been assigned...
+                        if new_armature == None:
+                            new_armature = modifier.object
+                        # if the modifiers target object is the new armature...
+                        if modifier.object == new_armature:
+                            # make sure the modifier is named to default...
+                            modifier.name = "Armature"
+                            # append it to new_meshes...
+                            new_meshes.append(obj)
+                            # switch to deformation from the active MMT armature...
+                            modifier.object = target  
+        # clean up anything we don't want to keep...    
+        for obj in imported_objects:
+            if obj not in new_meshes:
+                bpy.data.objects.remove(obj, do_unlink=True)
+    elif MMT.I_import_to_retarget:
+        bpy.ops.jk.c_retargetrig()  
+    
 #---------- EXECUTION -------------------------------------------------------------------------
 
 def Import(MMT):
     # target will always be the active object...
-    target_armature = bpy.context.object
-    # get a reference to all objects in the .blend before importing...
-    pre_objs = bpy.data.objects
-    # if batch importing...
-    if MMT.I_batch_animations:
-        # for each file in the import folder...
-        for path in os.listdir(bpy.path.abspath(MMT.I_path_animations)):
-            # if the file is an FBX...
-            if path.upper().endswith(".FBX"):
-                # hide deform bones so they dont get selected/processed...
-                if not target_armature.JK_MMT.Hide_deform_bones:
-                    target_armature.JK_MMT.Hide_deform_bones = True
-                # get the render FPS before importing...
-                pre_import_fps = bpy.context.scene.render.fps
-                # import the fbx...
-                bpy.ops.import_scene.fbx(filepath=os.path.join(bpy.path.abspath(MMT.I_path_animations), path), directory="", filter_glob="*.fbx", ui_tab='MAIN', use_manual_orientation=False, global_scale=1.0, bake_space_transform=False, use_custom_normals=True, use_image_search=True, use_alpha_decals=False, decal_offset=0.0, use_anim=True, anim_offset=MMT.I_frame_offset, use_custom_props=True, use_custom_props_enum_as_string=True, ignore_leaf_bones=False, force_connect_children=False, automatic_bone_orientation=False, primary_bone_axis='Y', secondary_bone_axis='X', use_prepost_rot=True, axis_forward='-Z', axis_up='Y')
-                # get the render FPS after importing...
-                post_import_fps = bpy.context.scene.render.fps
-                #print(post_import_fps)
-                if target_armature.JK_MMT.Rig_type == 'MANNEQUIN' and "root" in bpy.data.objects:
-                    # get a reference to the imported armature... (TEST - is it always named root?)            
-                    anim_armature = bpy.data.objects["root"]                
-                    # if that armature has animation_data... (TEST - do any other anim data blocks other than actions gets imported?)
-                    if anim_armature.animation_data:
-                        # if we want to scale the keyframes to fit our fps before conversion to Mr Mannequin...
-                        if MMT.I_pre_scale_keyframes:
-                            A_Scale_Keyframes(pre_import_fps, post_import_fps, MMT.I_frame_offset)
-                        # convert the action on to the Mr Mannequin Rig...
-                        A_Convert_By_Child(anim_armature, target_armature, [("root" if MMT.I_root_motion else "pelvis")], ["lowerarm_twist_01_r", "upperarm_twist_01_l", "ball_l", "ball_r"], path[:-4])
-                        # or if we want to scale the keyframes to fit our fps after conversion to Mr Mannequin...
-                        if not MMT.I_pre_scale_keyframes:
-                            A_Scale_Keyframes(pre_import_fps, post_import_fps, MMT.I_frame_offset)
-                    # if there was no anim data let us know...
-                    else:
-                        print("No animation to convert!")
-                    # remove the armature that got imported...        
-                    bpy.data.objects.remove(anim_armature, do_unlink=True)
-                else:
-                    print("No 'root' armature was been imported!")
-    # if not batch exporting...
-    else:
-        # hide deform bones so they dont get selected/processed...
-        if not target_armature.JK_MMT.Hide_deform_bones:
-            target_armature.JK_MMT.Hide_deform_bones = True
-        # get the render FPS before importing...
-        pre_import_fps = bpy.context.scene.render.fps
-        # import the fbx...
-        bpy.ops.import_scene.fbx(filepath=bpy.path.abspath(MMT.I_animation_fbxs), directory="", filter_glob="*.fbx", use_manual_orientation=False, global_scale=1.0, bake_space_transform=False, use_custom_normals=True, use_image_search=True, use_alpha_decals=False, decal_offset=0.0, use_anim=True, anim_offset=MMT.I_frame_offset, use_custom_props=True, use_custom_props_enum_as_string=True, ignore_leaf_bones=False, force_connect_children=False, automatic_bone_orientation=False, primary_bone_axis='Y', secondary_bone_axis='X', use_prepost_rot=True, axis_forward='-Z', axis_up='Y')
-        # get the render FPS after importing...
-        post_import_fps = bpy.context.scene.render.fps
-        if "root" in bpy.data.objects:
-             # get a reference to the imported armature... (TEST - is it always named root?)            
-            anim_armature = bpy.data.objects["root"]                
-            # if that armature has animation_data... (TEST - do any other anim data blocks other than actions gets imported?)
-            if anim_armature.animation_data:
-                # if we want to scale the keyframes to fit our fps before conversion to Mr Mannequin...
-                if MMT.I_pre_scale_keyframes:
-                    A_Scale_Keyframes(pre_import_fps, post_import_fps, MMT.I_frame_offset)
-                # convert the action on to the Mr Mannequin Rig...
-                A_Convert_By_Child(anim_armature, target_armature, [("root" if MMT.I_root_motion else "pelvis")], ["lowerarm_twist_01_r", "upperarm_twist_01_l", "ball_l", "ball_r"], os.path.basename(MMT.I_animation_fbxs)[:-4])
-                # or if we want to scale the keyframes to fit our fps after conversion to Mr Mannequin...
-                if not MMT.I_pre_scale_keyframes:
-                    A_Scale_Keyframes(pre_import_fps, post_import_fps, MMT.I_frame_offset)
-            # if there was no anim data let us know...
-            else:
-                print("No animation to convert!")
-            # remove the armature that got imported...        
-            bpy.data.objects.remove(anim_armature)
+    target = bpy.context.object
+    # if we want to import meshes...        
+    if MMT.I_meshes:
+        # show deform bones so they can be selected/processed...    
+        if target.JK_MMT.Hide_deform_bones:
+            target.JK_MMT.Hide_deform_bones = False
+        # if batch importing...
+        if MMT.I_batch_meshes:
+            # for each file in the import folder...
+            for name in os.listdir(bpy.path.abspath(MMT.I_path_meshes)):
+                # if the file is an FBX...
+                if name.upper().endswith(".FBX"):
+                    I_Mesh(target, MMT, name)
         else:
-            print("No 'root' armature was imported!")       
-    # get a reference to all the objects in the .blend after importing...
-    post_objs = bpy.data.objects
-    # compare pre/post import objects incase more than just the armature was imported...
-    for obj in post_objs:
-        # and remove anything object that was not in the .blend when import started...
-        if obj.name not in pre_objs:
-            bpy.data.objects.remove(obj, do_unlink=True)
-
+            I_Mesh(target, MMT, bpy.path.basename(MMT.I_mesh_fbxs))
+    # if we want to import animations...
+    if MMT.I_animations:
+        # hide deform bones so they dont get selected/processed...    
+        if not target.JK_MMT.Hide_deform_bones:
+            target.JK_MMT.Hide_deform_bones = True
+        # if batch importing...
+        if MMT.I_batch_animations:
+            # for each file in the import folder...
+            for name in os.listdir(bpy.path.abspath(MMT.I_path_animations)):
+                # if the file is an FBX...
+                if name.upper().endswith(".FBX"):
+                    I_Animation(target, MMT, name)
+        else:
+            I_Animation(target, MMT, bpy.path.basename(MMT.I_animation_fbxs))
+            
 # used for testing...
-#Import(bpy.context.scene.JK_MMT)            
+#Import(bpy.context.scene.JK_MMT)
+
+# R_Create_Extra_Bones(armature, target)            

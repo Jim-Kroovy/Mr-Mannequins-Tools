@@ -1,6 +1,10 @@
-# Contributor(s): James Goldsworthy (j.kroovy.creative.services@gmail.com)
-#
-# This program is free software; you can redistribute it and/or modify
+# Contributor(s): James Goldsworthy (Jim Kroovy)
+
+# Support: https://twitter.com/JimKroovy
+#          https://www.facebook.com/JimKroovy
+#          http://youtube.com/c/JimKroovy
+
+# This code is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
@@ -9,15 +13,19 @@
 # WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTIBILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 # General Public License for more details.
-#
+
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+# Currently all the default meshes, textures, materials and armatures provided
+# with the add-on in the "MMT_Stash" folder are property of Epic Games and should
+# come under the UE4 EULA <https://www.unrealengine.com/en-US/eula>.
 
 bl_info = {
     "name": "Mr Mannequins Tools",
     "author": "James Goldsworthy (Jim Kroovy)",
-    "version": (1, 1),
-    "blender": (2, 80, 0),
+    "version": (1, 2),
+    "blender": (2, 81, 0),
     "location": "3D View > Tools",
     "description": "Loads, saves, imports and exports UE4 Mannequin compatible armatures and meshes",
     "warning": "",
@@ -29,7 +37,7 @@ import bpy
 import sys
 import os
 import importlib # i dont think executing importlib.reload(script) on scripts is needed as they all run from scene property values but doing it anyway just to be on the safe side...
-from . import (MMT_Export_FBX, MMT_Import_FBX, MMT_Options_IK, MMT_Stash_Object, MMT_Stash_Material, MMT_Update)
+from . import (MMT_Export_FBX, MMT_Import_FBX, MMT_Options_Retarget, MMT_Options_Rig, MMT_Stash_Object, MMT_Stash_Material, MMT_Update)
 
 from bpy.props import (StringProperty, BoolProperty, BoolVectorProperty, IntProperty, IntVectorProperty, FloatProperty, EnumProperty, PointerProperty, CollectionProperty)
                        
@@ -63,7 +71,7 @@ from bpy.app.handlers import persistent
 # I did want to make the rig properties specific to armatures but doing that makes them a pain to animate so they are attached to objects instead...
 # which isn't all bad as that also means that in the future i can easily drive character mesh shape keys and options from the armature within the same actions...
 
-# MMT stands for Mr Mannequins Tools, E stands for export, I stands for import, S stands for Stash, L stands for Load, A stands for Add, O stands for option...
+# MMT stands for Mr Mannequins Tools, E stands for export, I stands for import, S stands for Stash, L stands for Load, A stands for Add, O stands for option, U stands for update, C stands for custom...
 # and JK/Jk/jk stands for Jim Kroovy and is the creator prefix i use for anything that might be used elsewhere... (makes for easier searching in most editing programs)
 
 # Dynamically generated EnumProperty items must be referenced from Python!!!
@@ -106,7 +114,10 @@ def Get_Stashed_MMT(MMT_path, armature, S_path, type):
                         items.append((os.path.join(custom_dir, filename), filename[name_start:-6], os.path.join(custom_dir, filename)))
                 else:
                     items.append((os.path.join(custom_dir, filename), filename[9:-6], os.path.join(custom_dir, filename)))
-    return items
+    if len(items) > 0:
+        return items
+    else:
+        return [('None', "None", 'None')]
 
 # gets all the saved stash paths from add-on preferences...
 
@@ -121,7 +132,7 @@ def Get_Stashes(self, context):
                 stashes.append(stash)
             else:
                 prefs.S_paths.remove(stash)
-    
+
     # There is a known bug with using a callback, Python must keep a reference to the strings returned by the callback or Blender will misbehave or even crash.
     # https://docs.blender.org/api/current/bpy.props.html?highlight=bpy%20props%20enumproperty#bpy.props.EnumProperty
     global Get_Stashes_Result_Reference
@@ -131,7 +142,7 @@ def Get_Stashes(self, context):
         return stashes
     else:
         return [('None', "None", 'None')]
-
+    
 # gets all .FBXs in the given folder location...
 def Get_Imports_FBX(self, context, i_path):
     items = []
@@ -140,6 +151,28 @@ def Get_Imports_FBX(self, context, i_path):
             if filename.upper().endswith(".FBX"):
                 items.append((os.path.join(i_path, filename), filename[:-4], os.path.join(i_path, filename)))
     return items            
+
+Get_Characters_Result_Reference=[]
+
+# return the possible character meshes a rig can be set to...
+def Get_Character_Meshes(self, context):
+    items = []
+    for obj in bpy.data.objects:
+        if obj.type == 'MESH':
+            if obj.data.JK_MMT.Character_type == self.Rig_type and self.Rig_type != 'NONE':
+                if not any(item[1] == obj.data.JK_MMT.Character_name for item in items):
+                    items.append((obj.name, obj.data.JK_MMT.Character_name, obj.data.JK_MMT.Character_name))
+                #if any(modifier.type == 'ARMATURE' for modifier in obj.modifiers
+    
+    # There is a known bug with using a callback, Python must keep a reference to the strings returned by the callback or Blender will misbehave or even crash.
+    # https://docs.blender.org/api/current/bpy.props.html?highlight=bpy%20props%20enumproperty#bpy.props.EnumProperty
+    global Get_Characters_Result_Reference
+    Get_Characters_Result_Reference=items
+    
+    if len(items) > 0:
+        return items
+    else:
+        return [('None', "None", 'None')]            
 
 # gets the local matrix of a pose bone after constraints and drivers have been applied...
 def Get_Local_Bone_Matrix(p_bone):
@@ -219,33 +252,40 @@ Get_Stashed_Armatures_Results_Reference = []
 Get_Stashed_Meshes_Results_Reference = []
 Get_Stashed_Materials_Results_Reference = []
 Get_Import_Animations_Results_Reference = []
+Get_Import_Meshes_Results_Reference = []
 
 # all the main add-on options...
 class JK_MMT_Props(PropertyGroup):
-    
+
     def Get_Stashed_Armatures(self, context):
         result = Get_Stashed_MMT(self.MMT_path, bpy.context.object, self.S_path, 'ARMATURE')
         global Get_Stashed_Armatures_Results_Reference
         Get_Stashed_Armatures_Results_Reference = result
         return result
-    
+
     def Get_Stashed_Meshes(self, context):
         result = Get_Stashed_MMT(self.MMT_path, bpy.context.object, self.S_path, 'MESH')
         global Get_Stashed_Meshes_Results_Reference
         Get_Stashed_Meshes_Results_Reference = result
         return result
-    
+
     def Get_Stashed_Materials(self, context):
         result = Get_Stashed_MMT(self.MMT_path, bpy.context.object, self.S_path, 'MATERIAL')
         global Get_Stashed_Materials_Results_Reference
         Get_Stashed_Materials_Results_Reference = result
         return result
-    
+
     def Get_Import_Animations(self, context):
         result = Get_Imports_FBX(self, context, self.I_path_animations)   
         global Get_Import_Animations_Results_Reference
         Get_Import_Animations_Results_Reference = result
         return result
+    
+    def Get_Import_Meshes(self, context):
+        result = Get_Imports_FBX(self, context, self.I_path_meshes)   
+        global Get_Import_Meshes_Results_Reference
+        Get_Import_Meshes_Results_Reference = result
+        return result    
   
     MMT_path: StringProperty(
         name="",
@@ -260,7 +300,7 @@ class JK_MMT_Props(PropertyGroup):
         default="",
         maxlen=1024,
         )
-    
+        
     S_path: EnumProperty(
         name="Stash",
         description="Where you want to save and load mesh/materials to and from",
@@ -387,13 +427,19 @@ class JK_MMT_Props(PropertyGroup):
         description="Force start and end keyframes on export",
         default = False
         )
-
-    E_use_visual_location: BoolProperty(
-        name="Use Visual Location",
-        description="Use visual location to fix location curves on export. Usually this would be used if bone locations are influenced by constraints. WARNING, currently unable to support both types of keying within the same export",
-        default = False
+    
+    E_anim_step: FloatProperty(
+        name="Sample Rate", 
+        description="How often to evaluate animated values (in frames)", 
+        default=1.0
         )
         
+    E_simplify_factor: FloatProperty(
+        name="Simplify", 
+        description="How much to simplify baked values (0.0 to disable, the higher the more simplified)", 
+        default=1.0
+        )
+                
     E_path_meshes: StringProperty(
         name="Mesh Export Folder",
         description="Export meshes to this folder",
@@ -415,6 +461,12 @@ class JK_MMT_Props(PropertyGroup):
         description="Import Animations",
         default = False
         )
+        
+    I_meshes: BoolProperty(
+        name="Import Meshes",
+        description="Import Meshes",
+        default = False
+        )
     
     I_animation_fbxs: EnumProperty(
         name="FBX",
@@ -423,9 +475,22 @@ class JK_MMT_Props(PropertyGroup):
         default=None
         )
     
+    I_mesh_fbxs: EnumProperty(
+        name="FBX",
+        description="Animation to import and convert",
+        items=Get_Import_Meshes,
+        default=None
+        )
+    
     I_batch_animations: BoolProperty(
         name="Batch Import Animations",
         description="Import all animations from animation import folder",
+        default = True
+        )
+        
+    I_batch_meshes: BoolProperty(
+        name="Batch Import Meshes",
+        description="Import all meshes from animation import folder",
         default = True
         )
     
@@ -446,6 +511,30 @@ class JK_MMT_Props(PropertyGroup):
         description="Keyframe 'Mute Default Constraints' off on the first frame of the imported animation. Also keyframes the IK targets 'Use FK'/'Use Parent' properties if applicable. These controls always get switched off for accurate importation",
         default = True
         )
+        
+    I_key_location: BoolProperty(
+        name="Key Location",
+        description="Keyframe locations from the imported animation. If false only keyframes rotations. WARNING: Work in progress, currently kills root and pelvis location keyframes!",
+        default = True
+        )
+            
+    I_rig_to_active: BoolProperty(
+        name="Rig to Active",
+        description="Whether we try to assign mesh armature modifiers to the active armature or just import the mesh with its imported armature. Only use this on imported mesh/armatures that very closely resemble the active armature and have the same bone names",
+        default = False
+        )
+        
+    I_import_to_retarget: BoolProperty(
+        name="Import to Retarget",
+        description="Jump straight into armature retargeting after import. Currently we only have a Mr Mannequin template to retarget with",
+        default = False
+        )
+            
+    I_user_props: BoolProperty(
+        name="Import User Properties",
+        description="Import user properties as custom properties. WARNING! Setting True might cause import errors with some properties found in .FBXs",
+        default = False
+        )
             
     I_frame_offset: IntProperty(
         name="Frame Offset",
@@ -460,8 +549,137 @@ class JK_MMT_Props(PropertyGroup):
         maxlen=1024,
         subtype='DIR_PATH'
         )
+    
+    I_path_meshes: StringProperty(
+        name="Mesh Import Folder",
+        description="Directory to import meshes from",
+        default="//",
+        maxlen=1024,
+        subtype='DIR_PATH'
+        )
 
-# bone specific options...        
+# mesh specific options...        
+class JK_MMT_Character_Props(PropertyGroup):
+    
+    Character_type: StringProperty(
+        name="Type",
+        description="The rig type used by the character mesh",
+        default="None",
+        maxlen=1024,
+        )
+    
+    Character_name: StringProperty(
+        name="Name",
+        description="The name used for the character",
+        default="None",
+        maxlen=1024,
+        )
+    
+    Is_default: BoolProperty(
+        name="Is MMT Default",
+        description="Is this a default mesh that i've provided",
+        default=False
+        )
+        
+    Is_female: BoolProperty(
+        name="Is Female",
+        description="Does this mesh need female bones. Sometimes male and female meshes might use the same points of rotation so this setting is relevant",
+        default=False
+        )
+    # not currently in use...
+    LOD_count: IntProperty(
+        name="LOD Count",
+        description="Number of different levels of detail. Not including the base mesh (LOD0)",
+        default = 0
+        )
+    
+    # think i'll be putting a collection or two here for morphable characters in the future...    
+    #Morph_data:
+
+# There is a known bug with using a callback, Python must keep a reference to the strings returned by the callback or Blender will misbehave or even crash.
+# https://docs.blender.org/api/current/bpy.props.html?highlight=bpy%20props%20enumproperty#bpy.props.EnumProperty
+Get_Socket_Targets_Results_Reference = []
+Get_Socket_Subtargets_Results_Reference = []
+
+# socket properties...
+class JK_MMT_Socket_Props(PropertyGroup):
+    
+    def Get_Targets(self, context):
+        items = [('None', "None", 'None')]
+        if len(bpy.data.objects) > 0:
+            items = items + [(obj.name, obj.name, obj.type) for obj in bpy.data.objects]
+        # There is a known bug with using a callback, Python must keep a reference to the strings returned by the callback or Blender will misbehave or even crash.
+        # https://docs.blender.org/api/current/bpy.props.html?highlight=bpy%20props%20enumproperty#bpy.props.EnumProperty
+        global Get_Socket_Targets_Results_Reference
+        Get_Socket_Targets_Results_Reference=items
+        return items
+    
+    def Get_Subtargets(self, context):
+        items = [('None', "None", 'None')]
+        if self.Socket_target != 'None':
+            target = bpy.data.objects[self.Socket_target]
+            if target.type == 'ARMATURE':
+                items = items + [(bone.name, bone.name, "Attach to " + bone.name) for bone in target.pose.bones]
+            elif target.type == 'MESH':
+                items = items + [(group.name, group.name, "Attach to " + group.name) for group in target.vertex_groups]
+        # There is a known bug with using a callback, Python must keep a reference to the strings returned by the callback or Blender will misbehave or even crash.
+        # https://docs.blender.org/api/current/bpy.props.html?highlight=bpy%20props%20enumproperty#bpy.props.EnumProperty
+        global Get_Socket_Subtargets_Results_Reference
+        Get_Socket_Subtargets_Results_Reference=items
+        return items
+    
+    def Update_Subtarget(self, context):
+        if self.Is_attached:
+            if self.Socket_subtarget != 'None':
+                self.id_data.constraints["MMT SOCKET - Copy Transforms"].subtarget = self.Socket_subtarget
+            else:
+                self.id_data.constraints["MMT SOCKET - Copy Transforms"].subtarget = ""
+    
+    def Update_Target(self, context):
+        if self.Is_attached:
+            if self.Socket_target != 'None':
+                self.id_data.constraints["MMT SOCKET - Copy Transforms"].target = bpy.data.objects[self.Socket_target]
+                self.id_data.constraints["MMT SOCKET - Copy Transforms"].subtarget = ""
+            else:
+                self.Is_attached = False
+                    
+    def Update_Attach(self, context):
+        if self.Is_attached:          
+            constraint = self.id_data.constraints.new('COPY_TRANSFORMS')
+            constraint.name = "MMT SOCKET - " + constraint.name
+            if self.Socket_target != 'None':
+                constraint.target = bpy.data.objects[self.Socket_target]
+            if self.Socket_subtarget != 'None':
+                constraint.subtarget = self.Socket_subtarget
+        else:       
+            for constraint in self.id_data.constraints:
+                if constraint.name.startswith("MMT SOCKET - "):
+                    self.id_data.constraints.remove(constraint)
+                                               
+    Socket_target: EnumProperty(
+        name="Target",
+        description="The object to attach mesh/armature to",
+        items=Get_Targets,
+        default=None,
+        update=Update_Target
+        )
+    
+    Socket_subtarget: EnumProperty(
+        name="Sub Target",
+        description="The bone/vertex group to attach mesh/armature to (if required)",
+        items=Get_Subtargets,
+        default=None,
+        update=Update_Subtarget
+        )        
+    
+    Is_attached: BoolProperty(
+        name="Is Attached",
+        description="Is this mesh/armature currently attached to the target",
+        default=False,
+        update=Update_Attach
+        )
+
+# IK chain specific options...        
 class JK_MMT_IK_Props(PropertyGroup):
     
     # don't need this function for now, might bring it back for more dynamic chains in future updates...
@@ -739,31 +957,37 @@ class JK_MMT_IK_Props(PropertyGroup):
 class JK_MMT_Rig_Props(PropertyGroup):
     
     def Update_Head_Tracking(self, context):
-        importlib.reload(MMT_Options_IK)
-        MMT_Options_IK.Set_Head_Tracking()
+        importlib.reload(MMT_Options_Rig)
+        MMT_Options_Rig.Set_Head_Tracking()
         self.Current_options[0] = int(self.Head_tracking)
     
     def Update_IK_Parenting(self, context):
-        importlib.reload(MMT_Options_IK)
-        MMT_Options_IK.Set_IK_Parenting()
+        importlib.reload(MMT_Options_Rig)
+        MMT_Options_Rig.Set_IK_Parenting()
         self.Current_options[1] = int(self.IK_parenting)
         
     def Update_IKvsFK_Limbs(self, context):
-        importlib.reload(MMT_Options_IK)
-        MMT_Options_IK.Set_IKvsFK_Limbs()
+        importlib.reload(MMT_Options_Rig)
+        MMT_Options_Rig.Set_IKvsFK_Limbs()
         self.Current_options[2] = int(self.IKvsFK_limbs)
         
     def Update_IKvsFK_Digits(self, context):
-        importlib.reload(MMT_Options_IK)
-        MMT_Options_IK.Set_IKvsFK_Digits()
+        importlib.reload(MMT_Options_Rig)
+        MMT_Options_Rig.Set_IKvsFK_Digits()
         self.Current_options[3] = int(self.IKvsFK_digits)
+        
+    def Update_Character_Mesh(self, context):
+        for prop in bpy.data.objects[self.Character_meshes].data.JK_MMT.items():
+            self.Character_props[prop[0]] = prop[1]
         
     Rig_type: EnumProperty(
         name="Rig Type",
         description="What type of rig the add-on registers the armature as",
         items=[('NONE', 'None', "Not a Mr Mannequin rig"),
+        ('TEMPLATE', 'Template', "Retarget template rig"),
         ('MANNEQUIN', 'Mannequin', "Biped based rig"),
-        ('GUN', 'Gun', "Weapon based rig")],
+        ('GUN', 'Gun', "Weapon based rig"),
+        ('CUSTOM', 'Custom', "User created rig")],
         default='NONE'
         )
     
@@ -784,7 +1008,7 @@ class JK_MMT_Rig_Props(PropertyGroup):
         description="Which method of Head Tracking to use",
         items=[('0', 'None', "No head tracking"),
         ('1', 'Use Head Tracking', "Use head tracking")],
-        #('2', 'Switchable', "Head tracking can be switched on and off while keyframing")] # not really needed as influences ca be keyframed??
+        #('2', 'Switchable', "Head tracking can be switched on and off while keyframing")] # not really needed as influences can be keyframed??
         default='0',
         update=Update_Head_Tracking
         )
@@ -827,13 +1051,38 @@ class JK_MMT_Rig_Props(PropertyGroup):
         )
         
     IK_chain_data: CollectionProperty(type=JK_MMT_IK_Props)
-        #type=JK_MMT_IK_Props, 
-        #name="IK Chain Data", 
-        #description="Collection of IK chain properties" 
-        #options={'ANIMATABLE'}, 
-        #tags={}
-        #)
-                    
+    
+    Character_meshes: EnumProperty(
+        name="Characters",
+        description="Characters to set rig to",
+        items=Get_Character_Meshes,
+        default=None,
+        update=Update_Character_Mesh
+        )
+    
+    Character_props: PointerProperty(type=JK_MMT_Character_Props)
+        
+    Retarget_target: StringProperty(
+        name="Target",
+        description="Name of the armature we are retargeting too",
+        default="None",
+        maxlen=1024,
+        )                 
+    
+    Force_template_rotations: BoolProperty(
+        name="Force Template Rotations",
+        description="Attempt to pose the mesh to fit the active templates default bone rotations and apply the deformation. WARNING! This is a work in progress",
+        default = False
+        )
+        
+    Force_template_locations: BoolProperty(
+        name="Force Template Locations",
+        description="Attempt to pose the mesh to fit the active templates default bone locations and apply the deformation. WARNING! This is a work in progress",
+        default = False
+        )
+    
+    Socket_props: PointerProperty(type=JK_MMT_Socket_Props)
+    
 # adds selected meshes to saved files...    
 class JK_OT_A_Stash(Operator):
     """Adds a stash folder to the selected location"""
@@ -907,7 +1156,7 @@ class JK_OT_L_Mesh(Operator):
         with bpy.data.libraries.load(MMT.L_meshes, link=False, relative=False) as (data_from, data_to):
             data_to.objects = [name for name in data_from.objects if name == obj_name]
             data_to.texts = [name for name in data_from.texts if name == obj_name + ".py"]
-        
+
         for obj in data_to.objects:
             if obj is not None:
                 # link the object to the current collection...
@@ -1100,7 +1349,8 @@ class JK_OT_E_FBX(Operator):
             ShowMessage(message = "Unable to save unsaved .blend, export requires you to of saved at least once", title = "Export Error", icon = 'ERROR')
             print("Unable to save unsaved .blend, export requires you to of saved at least once")
         return {'FINISHED'}
-    
+
+            
 # FBX import operator...       
 class JK_OT_I_FBX(Operator):
     """Imports and converts Mr Mannequin FBX(s) to be compatible with this rig in Blender. Currently only works on mannequin based animations. I'd like to work on making it more accurate"""
@@ -1119,6 +1369,22 @@ class JK_OT_I_FBX(Operator):
             ShowMessage(message = "Unable to save unsaved .blend, import requires you to of saved at least once", title = "Import Error", icon = 'ERROR')
             print("Unable to save unsaved .blend, import requires you to of saved at least once")
         return {'FINISHED'}
+
+class JK_OT_C_RetargetRig(Operator):
+    """Work in progress! - Currently registers/unregisters a custom rig with the add-on and swaps/unswaps the X and Y axes on all deforming bones"""
+    bl_idname = "jk.c_retargetrig"
+    bl_label = "Export FBX"
+    
+    def execute(self, context):
+        scene = context.scene
+        MMT = scene.JK_MMT
+        importlib.reload(MMT_Options_Retarget)
+        obj = bpy.context.object
+        if bpy.context.object.JK_MMT.Rig_type == 'TEMPLATE':
+            MMT_Options_Retarget.Apply_Rig_Retargeting(bpy.data.objects[obj.JK_MMT.Retarget_target], obj, 'ARMATURE_UE4_Mannequin_Template')
+        else:   
+            MMT_Options_Retarget.Start_Rig_Retargeting(obj, 'ARMATURE_UE4_Mannequin_Template')
+        return {'FINISHED'}
     
 # updates rig to current version...    
 class JK_OT_U_UpdateRig(Operator):
@@ -1132,7 +1398,9 @@ class JK_OT_U_UpdateRig(Operator):
         MMT = scene.JK_MMT
         importlib.reload(MMT_Update)
         if armature.get('MrMannequinRig') != None:
-            MMT_Update.Update_1_1(armature, MMT)     
+            MMT_Update.Update_1_1(armature, MMT)
+        elif armature.get("MMT Rig Version") == None and armature.JK_MMT.Rig_type != 'NONE':
+            MMT_Update.Update_1_2(armature, MMT)      
         return {'FINISHED'}
 
 # export/import inteface panel...            
@@ -1140,7 +1408,7 @@ class JK_PT_MMT_Export_FBX(Panel):
     bl_label = "Export/Import"
     bl_idname = "JK_PT_MMT_Export_FBX"
     bl_space_type = 'VIEW_3D'    
-    bl_context= 'objectmode'
+    bl_context = 'objectmode'
     bl_region_type = 'UI'
     bl_category = "Mr Mannequins Tools"
     
@@ -1153,49 +1421,90 @@ class JK_PT_MMT_Export_FBX(Panel):
         layout.prop(scene.render, "fps")
         if armature != None and len(bpy.context.selected_objects) > 0:
             if armature.type == 'ARMATURE':
-                if armature.JK_MMT.Rig_type != 'NONE':
-                    layout.prop(MMT, "E_meshes")
-                    if MMT.E_meshes:
-                        box = layout.box()
-                        box.prop(MMT, "E_batch_meshes")
-                        box.prop(MMT, "E_path_meshes")
-                    layout.prop(MMT, "E_animations")
-                    if MMT.E_animations:
-                        box = layout.box()
-                        box.prop(MMT, "E_batch_animations")
-                        #box.prop(MMT, "E_use_visual_location") # disabled until i fix up visual export properly...
-                        box.prop(MMT, "E_path_animations")
-                    if MMT.E_meshes or MMT.E_animations:
-                        layout.prop(MMT, "E_apply_modifiers")
-                        layout.prop(MMT, "E_startend_keys")
-                        layout.operator("jk.e_fbx")
-                        layout.separator()
-                    if armature.JK_MMT.Rig_type == 'MANNEQUIN':
-                        layout.prop(MMT, "I_animations")                        
-                        if MMT.I_animations:
-                            box = layout.box()
-                            box.prop(MMT, "I_batch_animations")
-                            if not MMT.I_batch_animations:
-                                box.prop(MMT, "I_animation_fbxs")
-                            box.prop(MMT, "I_pre_scale_keyframes")                                                                  
-                            box.prop(MMT, "I_root_motion")
-                            box.prop(MMT, "I_key_controls")
-                            box.prop(MMT, "I_frame_offset")
-                            box.prop(MMT, "I_path_animations")
-                            layout.operator("jk.i_fbx")
-                else:
-                    layout.label(text="Please select a Mr Mannequin rig")
+                #if armature.JK_MMT.Rig_type != 'NONE':
+                layout.prop(MMT, "E_meshes")
+                if MMT.E_meshes:
+                    box = layout.box()
+                    box.prop(MMT, "E_batch_meshes")
+                    box.prop(MMT, "E_path_meshes")
+                layout.prop(MMT, "E_animations")
+                if MMT.E_animations:
+                    box = layout.box()
+                    box.prop(MMT, "E_batch_animations")
+                    box.prop(MMT, "E_path_animations")
+                if MMT.E_meshes or MMT.E_animations:
+                    layout.prop(MMT, "E_apply_modifiers")
+                    layout.prop(MMT, "E_startend_keys")
+                    layout.prop(MMT, "E_anim_step")
+                    layout.prop(MMT, "E_simplify_factor")
+                    layout.operator("jk.e_fbx")
+                    layout.separator()            
+                layout.prop(MMT, "I_meshes") 
+                if MMT.I_meshes:
+                    box = layout.box()
+                    box.prop(MMT, "I_batch_meshes")
+                    if not MMT.I_batch_meshes:
+                        box.prop(MMT, "I_mesh_fbxs")
+                        if not MMT.I_rig_to_active:
+                            box.prop(MMT, "I_import_to_retarget")                        
+                    box.prop(MMT, "I_rig_to_active")                                                                        
+                    box.prop(MMT, "I_path_meshes")
+                layout.prop(MMT, "I_animations")                        
+                if MMT.I_animations:
+                    box = layout.box()
+                    box.prop(MMT, "I_batch_animations")
+                    if not MMT.I_batch_animations:
+                        box.prop(MMT, "I_animation_fbxs")
+                    box.prop(MMT, "I_pre_scale_keyframes")                                                                  
+                    box.prop(MMT, "I_root_motion")
+                    box.prop(MMT, "I_key_controls")
+                    box.prop(MMT, "I_key_location")
+                    box.prop(MMT, "I_frame_offset")
+                    box.prop(MMT, "I_path_animations")                
+                if MMT.I_meshes or MMT.I_animations:
+                    layout.prop(MMT, "I_user_props")
+                    layout.operator("jk.i_fbx")
+                if armature.JK_MMT.Rig_type == 'NONE' or armature.JK_MMT.Rig_type == 'TEMPLATE':
+                    layout.operator("jk.c_retargetrig", text=("Start Retargeting" if armature.JK_MMT.Rig_type == 'NONE' else "Apply Retargeting"))
             else:
                 layout.label(text="Please select a Mr Mannequin rig")
         else:
             layout.label(text="Please select a Mr Mannequin rig")
-    
+
+# socket interface panel...       
+class JK_PT_MMT_Socket(Panel):
+    bl_label = "Socket"
+    bl_idname = "JK_PT_MMT_Socket"
+    bl_space_type = 'VIEW_3D'
+    bl_context = 'objectmode'
+    bl_region_type = 'UI'
+    bl_category = "Mr Mannequins Tools"
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        obj = bpy.context.object
+        if obj != None and len(bpy.context.selected_objects) > 0:
+            layout.label(text="Active Object")
+            layout.prop(obj.JK_MMT.Socket_props, "Socket_target")
+            layout.prop(obj.JK_MMT.Socket_props, "Socket_subtarget")
+            layout.prop(obj.JK_MMT.Socket_props, "Is_attached")
+            for socket in bpy.context.selected_objects:
+                if socket != obj:
+                    box = layout.box()
+                    box.label(text=socket.name)
+                    box.prop(socket.JK_MMT.Socket_props, "Socket_target")
+                    box.prop(socket.JK_MMT.Socket_props, "Socket_subtarget")
+                    box.prop(socket.JK_MMT.Socket_props, "Is_attached")               
+        else:
+            layout.label(text="Please select one or more objects")
+                
 # stash interface panel...       
 class JK_PT_MMT_Stash(Panel):
     bl_label = "Stash"
     bl_idname = "JK_PT_MMT_Stash"
     bl_space_type = 'VIEW_3D'
-    bl_context= 'objectmode'
+    bl_context = 'objectmode'
     bl_region_type = 'UI'
     bl_category = "Mr Mannequins Tools"
 
@@ -1239,22 +1548,25 @@ class JK_PT_MMT_Stash(Panel):
                     box.prop(MMT, "L_active_parent")
                     box.prop(MMT, "L_apply_scale_meshes") 
                     row = box.row()
-                    row.operator("jk.l_mesh")
-                    row.operator("jk.r_mesh")
+                    if os.path.exists(MMT.L_meshes):
+                        row.operator("jk.l_mesh")
+                        row.operator("jk.r_mesh")
                     if os.path.exists(MMT.S_path) and any(obj.type == 'MESH' for obj in bpy.context.selected_objects):
                         box = layout.box()
                         box.prop(MMT, "A_overwrite_existing_meshes")
                         box.prop(MMT, "A_autosave_materials")
                         box.operator("jk.a_mesh")
-                elif armature.get('MrMannequinRig') != None:
-                    layout.operator("jk.u_updaterig")
-
+                if armature.get('MrMannequinRig') != None:
+                    layout.operator("jk.u_updaterig", text="Update Rig (1.1)")
+                elif armature.get("MMT Rig Version") == None and armature.JK_MMT.Rig_type != 'NONE':
+                    layout.operator("jk.u_updaterig", text="Update Rig (1.2)")
+                               
 # rig options interace panel...            
 class JK_PT_MMT_Pose_Options(Panel):    
     bl_label = "Rig Options"
     bl_idname = "JK_PT_MMT_Pose_Options"
     bl_space_type = 'VIEW_3D'    
-    bl_context= 'posemode'
+    bl_context = 'posemode'
     bl_region_type = 'UI'
     bl_category = "Mr Mannequins Tools"
     
@@ -1265,7 +1577,10 @@ class JK_PT_MMT_Pose_Options(Panel):
         MMT = armature.JK_MMT
         if armature != None and len(bpy.context.selected_objects) > 0:
             if armature.type == 'ARMATURE':
+                # if it's a mannequin rig we know what options there should be...
                 if armature.JK_MMT.Rig_type == 'MANNEQUIN':
+                    layout.prop(MMT, "Character_meshes") 
+                    
                     box = layout.box()
                     box.label(text="Head Tracking")
                     box.prop(MMT, "Head_tracking", text="")
@@ -1281,9 +1596,45 @@ class JK_PT_MMT_Pose_Options(Panel):
                     box = layout.box()
                     box.label(text="IK vs FK - Digits")
                     box.prop(MMT, "IKvsFK_digits", text="")
-
-                elif bpy.context.object.JK_MMT.Rig_type == 'GUN':
+                # if it's a custom rig we will need to check if options can be used...
+                elif armature.JK_MMT.Rig_type == 'CUSTOM':
+                    # head tracking is not dynamic (yet) so all three bones must be present...
+                    if "CB_head" in armature.pose.bones and "CB_neck_01" in armature.pose.bones and  "CB_spine_03" in armature.pose.bones:
+                        box = layout.box()
+                        box.label(text="Head Tracking")
+                        box.prop(MMT, "Head_tracking", text="")
+                    # ik parenting requires both the ik roots exist...
+                    if "CB_ik_hand_root" in armature.pose.bones and "CB_ik_foot_root" in armature.pose.bones:
+                        box = layout.box()
+                        box.label(text="IK Parenting")
+                        box.prop(MMT, "IK_parenting", text="")
+                    # if there are any IK chains we can use the IK vs FK limb options....
+                    if len(armature.JK_MMT.IK_chain_data) > 0:
+                        box = layout.box()
+                        box.label(text="IK vs FK - Limbs")
+                        box.prop(MMT, "IKvsFK_limbs", text="")
+                    # if there any digits we can use the digit IK vs FK options... i think??
+                    if any(name + "_l" in armature.pose.bones or name + "_r" in armature.pose.bones for name in ["CB_thumb_03", "CB_index_03", "CB_middle_03", "CB_ring_03", "CB_pinky_03"]):
+                        box = layout.box()
+                        box.label(text="IK vs FK - Digits")
+                        box.prop(MMT, "IKvsFK_digits", text="")                
+                elif armature.JK_MMT.Rig_type == 'GUN':
                     layout.label(text="Sorry no gun options... yet!")
+                elif armature.JK_MMT.Rig_type == 'TEMPLATE':
+                    if MMT.Retarget_target != "None":
+                        target = bpy.data.objects[MMT.Retarget_target]
+                        layout.label(text="Target Display")
+                        box = layout.box()
+                        box.prop(target, "display_type", text="Armature")
+                        box.prop(target.data, "display_type", text="Bones")
+                    layout.label(text="Template Display")
+                    box = layout.box()
+                    box.prop(armature, "display_type", text="Armature")
+                    box.prop(armature.data, "display_type", text="Bones")
+                    box.prop(armature.data, "show_bone_custom_shapes", text="Shapes")
+                    layout.prop(armature.JK_MMT, "Force_template_rotations")
+                    layout.prop(armature.JK_MMT, "Force_template_locations")
+                    layout.operator("jk.c_retargetrig", text=("Start Retargeting" if armature.JK_MMT.Rig_type == 'NONE' else "Apply Retargeting"))
                 else:
                     layout.label(text="Please select a Mr Mannequin rig for options")
             else:
@@ -1310,11 +1661,15 @@ class JK_PT_MMT_Pose_Controls(Panel):
             if armature.type == 'ARMATURE' and MMT.Rig_type != 'NONE':
                 layout.prop(MMT, 'Hide_deform_bones')
                 layout.prop(MMT, 'Mute_default_constraints')
-                if MMT.Rig_type == 'MANNEQUIN':                
+                # if it's a mannequin or custom rig...
+                if MMT.Rig_type == 'MANNEQUIN' or MMT.Rig_type == 'CUSTOM':                
                     if any(armature.pose.bones[name] in bpy.context.selected_pose_bones for name in Spine if name in armature.pose.bones):
                         layout.label(text="Torso")
-                        if "Copy Rotation" in armature.pose.bones["CB_spine_02"].constraints:
-                            layout.prop(armature.pose.bones["CB_spine_02"].constraints["Copy Rotation"], 'influence', text="Spine 02 - Copy Spine 01")
+                        layout.prop(armature.pose.bones["CB_pelvis"].bone, "use_inherit_rotation", text="Pelvis - Inherit Rotation")
+                        layout.prop(armature.pose.bones["CB_spine_01"].bone, "use_inherit_rotation", text="Spine 01 - Inherit Rotation")
+                        if "CB_spine_02" in armature.pose.bones:
+                            if "Copy Rotation" in armature.pose.bones["CB_spine_02"].constraints:
+                                layout.prop(armature.pose.bones["CB_spine_02"].constraints["Copy Rotation"], 'influence', text="Spine 02 - Copy Spine 01")
                         if "GB_head" in armature.pose.bones:
                             box = layout.box()
                             box.label(text="Head Tracking")
@@ -1351,10 +1706,31 @@ class JK_PT_MMT_Pose_Controls(Panel):
                                         box.prop(data, 'Chain_ik_rotation_overide')
                     else:
                         layout.label(text="No IK chains registered")
+                # if it's a gun rig...
                 elif MMT.Rig_type == 'GUN':
                     layout.prop(armature.pose.bones["CB_Trigger_Bone"].constraints["Limit Rotation"], 'influence', text="Trigger - Limit Rotation")
                     layout.prop(armature.pose.bones["CB_Slide_Bone"].constraints["Limit Location"], 'influence', text="Slide - Limit Location")
                     layout.prop(armature.pose.bones["CB_Ammo"].constraints["Limit Location"], 'influence', text="Ammo - Limit Location") 
+                # if it's a template rig...
+                elif MMT.Rig_type == 'TEMPLATE':
+                    for bone in bpy.context.selected_pose_bones:    
+                        box = layout.box()
+                        box.label(text=bone.name)
+                        box.prop(bone.bone, "use_inherit_rotation")
+                        box.prop(bone.bone, "use_inherit_scale")
+                        box.prop(bone, "custom_shape")
+                        box.prop(bone, "custom_shape_scale")
+                        if len(bone.constraints) > 0:
+                            box_in = box.box()
+                        for constraint in bone.constraints:
+                            if constraint.type == 'COPY_LOCATION':
+                                box_in.label(text="Point Of Rotation:") 
+                            elif constraint.type == 'IK':
+                                box_in.label(text="IK Stretch To:")
+                            elif constraint.type == 'COPY_ROTATION':    
+                                box_in.label(text="Copy Y Rotation Of:")                        
+                            box_in.prop(constraint, "target")
+                            box_in.prop(constraint, "subtarget")
                 else:
                     layout.label(text="Please select a Mr Mannequin rig for controls")
             else:
@@ -1367,6 +1743,8 @@ class JK_PT_MMT_Pose_Controls(Panel):
 JK_MMT_classes = (
     JK_MMT_Prefs,
     JK_MMT_Props,
+    JK_MMT_Socket_Props,
+    JK_MMT_Character_Props,
     JK_MMT_IK_Props,
     JK_MMT_Rig_Props,
     JK_OT_A_Stash,
@@ -1380,8 +1758,10 @@ JK_MMT_classes = (
     JK_OT_A_Material,
     JK_OT_R_Mesh,
     JK_OT_R_Material,
+    JK_OT_C_RetargetRig,
     JK_OT_U_UpdateRig,
     JK_PT_MMT_Export_FBX,
+    JK_PT_MMT_Socket,
     JK_PT_MMT_Stash,
     JK_PT_MMT_Pose_Options,
     JK_PT_MMT_Pose_Controls,
@@ -1390,13 +1770,18 @@ JK_MMT_classes = (
 def register():
     for C in JK_MMT_classes:
         register_class(C)
+    # add-on options for import/export/stashing etc...
     bpy.types.Scene.JK_MMT = PointerProperty(type=JK_MMT_Props)
+    # mesh data is each specific meshes data in relation to a rig types options...
+    bpy.types.Mesh.JK_MMT = PointerProperty(type=JK_MMT_Character_Props)
+    # in order for rig properties to be keyframed in the same action as the bones they must be assigned to objects not armatures...
     bpy.types.Object.JK_MMT = PointerProperty(type=JK_MMT_Rig_Props)
-
+    
 def unregister():
     for C in reversed(JK_MMT_classes):
         unregister_class(C)
     del bpy.types.Scene.JK_MMT
+    del bpy.types.Mesh.JK_MMT
     del bpy.types.Object.JK_MMT
 
 #if __name__ == "__main__":

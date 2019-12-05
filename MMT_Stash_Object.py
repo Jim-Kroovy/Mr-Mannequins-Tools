@@ -28,13 +28,15 @@ def Get_Driver_References(drivers, obj_refs, obj):
             obj_refs['Drivers'][drv.data_path] = var_dict
 
 # writes and returns reference clean up script...
-def Write_References(item, obj_refs):        
+def Write_References(item, obj_refs, character_props):        
     text_name = item.name + ".py"
     text = bpy.data.texts.new(text_name)
     text.write(f"""import bpy
 import os
 # object references...    
 obj_refs = {obj_refs}
+# custom character properties...
+character_props = {character_props}
 
 # link to options property group...
 MMT = bpy.context.scene.JK_MMT    
@@ -196,8 +198,8 @@ if len(obj.material_slots) > 0:
             Get_CleanUp(ma.material.name, obj_refs['Materials'][i], removal_refs, missing_refs, linked_objs, 'MATERIAL')
             if ma.material.name != obj_refs['Materials'][i]:    
                 ma.material = bpy.data.materials[obj_refs['Materials'][i]]
-            # always auto load material if we are loading a default mesh...
-            elif os.path.join(MMT.MMT_path, "MMT_Stash") in MMT.L_meshes:
+            # always auto load material if we are loading a default mesh...         
+            elif character_props['Is_default']:
                 #print("DEFAULT")
                 AutoLoad_Material(os.path.join(MMT.MMT_path, "MMT_Stash"), obj_refs['Materials'][i])
                 ma.material = bpy.data.materials[obj_refs['Materials'][i]]
@@ -242,6 +244,9 @@ for key in removal_refs:
 for key in missing_refs:
     if missing_refs[key] == 'OBJECT':
         bpy.context.collection.objects.link(bpy.data.objects[key])
+
+if obj.data.JK_MMT.Is_default:
+        obj.data.JK_MMT.Is_default = False
 
 """)
     return text    
@@ -368,8 +373,9 @@ def Save_Object(obj, MMT):
     armature = bpy.data.objects[MMT.MMT_last_active]
     # gather references...
     obj_refs = Get_References(obj, MMT)
+    character_props = {prop[0] : prop[1] for prop in obj.data.JK_MMT.items()}
     # write the clean up script...
-    ref_text = Write_References(obj, obj_refs) 
+    ref_text = Write_References(obj, obj_refs, character_props) 
     # path to the created blend...
     obj_filepath = os.path.join(MMT.S_path, obj.type + "_" + armature.JK_MMT.Rig_type + "_" + obj.name + ".blend") #'MANNEQUIN' + "_" + obj.name + ".blend")
     # set the data to write before...
