@@ -6,18 +6,19 @@ without re-targeting anything in Unreal Engine.
 
 Features:
 
-- Animation ready mannequin rig with IK and other various rigging features
-- Animation ready first person gun rig (more rigging features coming soon)
-- Accurate Blender version of the mannequin and gun materials
-- Mannequin and gun mesh LODs
-- Basic pose interface with some useful rigging options
-- 90% accurate animation import and conversion script, still working on the performance heavy 100% version
-- The mother of all FBX export scripts
+- an animation ready mannequin rig with IK, female bones and other various rigging features
+- an animation ready first person gun rig (more rigging features at some point)
+- an accurate Blender version of the mannequin and gun materials
+- all mannequin, femmequin and gun meshes
+- a basic pose interface with some useful rigging options
+- a custom armature re-targeting script (use my rigging on almost any humanoid)
+- a basic socket system for any object (more to come on this)
+- the mother of all FBX export scripts (improved animation export code!)
+- the father of all FBX import scripts (now imports meshes!)
 
-Plenty more to come including advanced mutilation rigging options, a female mannequin amongst other meshes, an improved pose mode interface and more options for everything.
+If you want to know how the compatibility works, see [Mannequin Compatibility Explanation](https://www.youtube.com/watch?v=pRoQ3T8chUg&list=PL1VT6HxCKabeKxASV_HUrt3mtn3ld6sa0&index=3).
 
-If you want to know how this works, see [Mannequin Compatibility Explanation](https://www.youtube.com/watch?v=pRoQ3T8chUg&list=PL1VT6HxCKabeKxASV_HUrt3mtn3ld6sa0&index=3).
-
+Release/Dev videos and live streams in the Mr Mannequin Tools playlists on my [YouTube Channel](https://www.youtube.com/c/JimKroovy).
 
 # Getting the Add-on
 
