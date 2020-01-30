@@ -25,8 +25,8 @@ Release/Dev videos and live streams in the Mr Mannequin Tools playlists on my [Y
 You can get the add-on from several places:
 
 - Download from [Patreon](https://www.patreon.com/JimKroovy/posts). Early access releases posted here.
-- Download from [Gumroad](https://gumroad.com/jimkroovy)
-- Download a [released version from github](https://github.com/Jim-Kroovy/Mr-Mannequins-Tools/releases)
+- Download from [Gumroad](https://gumroad.com/jimkroovy) if you want the most recent stable version.
+- Download a [released version from github](https://github.com/Jim-Kroovy/Mr-Mannequins-Tools/releases) if you want a previous release.
 - Clone this repository with git. Note that the *master* branch is bleeding edge, but the intention is to keep it in a usable state.
 
 _NOTE:_ Due to a [github limitation](https://github.com/git-lfs/git-lfs/issues/903) the *Download Zip* function (under the green *Clone or download* button) does not correctly download the .blend files, since
