@@ -37,7 +37,20 @@ def ShowMessage(message = "", title = "Message Box", icon = 'INFO'):
         self.layout.label(text=message)
 
     bpy.context.window_manager.popup_menu(draw, title = title, icon = icon)
-            
+
+# fixes child of constraints after scaling...
+def Fix_Child_Of_Constraints(armature):
+    bpy.ops.object.mode_set(mode='POSE')
+    for p_bone in armature.pose.bones:
+        for constraint in p_bone.constraints:
+            if constraint.type == 'CHILD_OF':
+                bpy.context.active_object.data.bones.active = p_bone.bone
+                context_copy = bpy.context.copy()
+                context_copy["constraint"] = p_bone.constraints[constraint.name]
+                bpy.ops.constraint.childof_clear_inverse(context_copy, constraint=constraint.name, owner='BONE')
+                bpy.ops.constraint.childof_set_inverse(context_copy, constraint=constraint.name, owner='BONE')
+    bpy.ops.object.mode_set(mode='OBJECT')
+    
 # sets animation location scale to and from UE4... (this bit can take a few minutes if you have many keyframes or are batch exporting, it does a lot of work!)
 def A_UE4_Scale(action, float, armature):
     bpy.ops.object.mode_set(mode='POSE')
@@ -85,6 +98,8 @@ def O_UE4_Scale(objects, float):
     for obj in objects:
         bpy.context.view_layer.objects.active = obj
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        if obj.type == 'ARMATURE':
+            Fix_Child_Of_Constraints(obj)
     # return active object...
     bpy.context.view_layer.objects.active = active
 
