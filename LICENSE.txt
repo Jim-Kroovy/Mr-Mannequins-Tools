@@ -1,8 +1,8 @@
                  Mr. Mannequins Tools License
 There are 3 components of Mr. Mannequins Tools, each licensed under different
 terms: the code, which is licensed under the GNU GPL below, and the source
-mannequin artwork, which is under the Unreal Engine EULA and everything that
-doesn't come under those licenses has a CC-BY license.
+mannequin artwork, which is under the Unreal Engine EULA and everything else 
+that doesn't come under those two licenses has a CC-BY license.
 
            CC-BY LICENSE (Creative Commons - Attribution)
 You can find more specifics here: https://creativecommons.org/use-remix/cc-licenses/#by 
