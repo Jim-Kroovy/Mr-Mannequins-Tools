@@ -32,6 +32,7 @@ on [Gumroad](https://gumroad.com/jimkroovy) or subscribe on [Patreon](https://pa
 cd "$env:APPDATA\Blender Foundation\Blender\2.81\scripts\addons"
 git clone https://github.com/Jim-Kroovy/Mr-Mannequins-Tools.git MrMannequinsTools
 ```
+(You must also extract the MMT_Stash folder from the most recent release .zip and place it within the MrMannequinsTools folder)
 
 At this point, you can enable the addon in Blender Preferences.
 
