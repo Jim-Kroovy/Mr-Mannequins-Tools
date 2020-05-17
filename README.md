@@ -32,6 +32,7 @@ You can get the add-on from several places:
 - Download a [released version from github](https://github.com/Jim-Kroovy/Mr-Mannequins-Tools/releases) if you want a previous release.
 - Purchase from [Blender Market](https://blendermarket.com/products/mr-mannequins-tools)
 - Clone this repository with git. Note that the *master* branch is bleeding edge, but the intention is to keep it in a usable state.
+  (if you clone this you will need to manually extract the MMT_Stash folder from the most recent release... Git-LFS is too annoying)
 
 _NOTE:_ Due to a [github limitation](https://github.com/git-lfs/git-lfs/issues/903) the *Download Zip* function (under the green *Clone or download* button) does not correctly download the .blend files, since
 they are stored using git-lfs.
