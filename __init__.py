@@ -82,7 +82,7 @@ def jk_mmt_enable_addons():
     else:
         # otherwise it needs to be installed and enabled...
         print("Installing: BLEND-ArmatureDeformControls")
-        bpy.ops.preferences.addon_install(filepath=os.path.join(resources, 'BLEND-ArmatureDeformControls.zip'))
+        bpy.ops.preferences.addon_install(filepath=os.path.join(resources, 'BLEND-ArmatureDeformControls-1.0.0.zip'))
         bpy.ops.preferences.addon_enable(module='BLEND-ArmatureDeformControls')
     # if rigging library is already installed...
     if 'BLEND-ArmatureRiggingLibrary' in addons:
@@ -92,7 +92,7 @@ def jk_mmt_enable_addons():
     else:
         # otherwise it needs to be installed and enabled...
         print("Installing: BLEND-ArmatureRiggingLibrary")
-        bpy.ops.preferences.addon_install(filepath=os.path.join(resources, 'BLEND-ArmatureRiggingLibrary.zip'))
+        bpy.ops.preferences.addon_install(filepath=os.path.join(resources, 'BLEND-ArmatureRiggingLibrary-1.0.0.zip'))
         bpy.ops.preferences.addon_enable(module='BLEND-ArmatureRiggingLibrary')
 
     # check version of rigging add-ons at some point...
