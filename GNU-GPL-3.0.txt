@@ -1,32 +1,4 @@
-                 Mr. Mannequins Tools License
-There are 3 components of Mr. Mannequins Tools, each licensed under different
-terms: the code, which is licensed under the GNU GPL below, and the source
-mannequin artwork, which is under the Unreal Engine EULA and everything else 
-that doesn't come under those two licenses has a CC-BY license.
-
-           CC-BY LICENSE (Creative Commons - Attribution)
-You can find more specifics here: https://creativecommons.org/use-remix/cc-licenses/#by 
-
-"This license lets others distribute, remix, tweak, and build upon your work, even commercially, 
-as long as they credit you for the original creation."
-
-If you need special permissions please ask!
-
-To give credit you must visibly state that the specific file(s) were created by Jim Kroovy 
-and (if possible) provide links to my Patreon (https://www.patreon.com/JimKroovy) 
-and/or YouTube channel (https://www.youtube.com/c/JimKroovy).
-
-"All CC licenses require that others who use your work in any way must give you credit 
-the way you request, but not in a way that suggests you endorse them or their use. 
-If they want to use your work without giving you credit or for endorsement purposes, 
-they must get your permission first."
-
-            UNREAL ENGINE END USER LICENSE AGREEMENT
-The latest version of the Unreal Engine EULA can be found at:
-https://www.unrealengine.com/en-US/eula
-
-
-                    GNU GENERAL PUBLIC LICENSE
+                      GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 
  Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/>
