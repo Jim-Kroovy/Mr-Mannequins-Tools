@@ -897,7 +897,7 @@ def run_import(iport):
         # apply all the transforms we want to apply...
         bpy.ops.object.transform_apply(location=iport.apply_location, rotation=iport.apply_rotation, scale=iport.apply_scale)
         # then re-apply parenting...
-        for child, parent in parenting:
+        for child, parent in parenting.items():
             child.parent = parent
 
 #------------------------------------------------------------------------------------------------------------------------------------------------------#

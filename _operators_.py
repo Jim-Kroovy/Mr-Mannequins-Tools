@@ -213,7 +213,7 @@ class JK_OT_MMT_Import_FBX(bpy.types.Operator):
     def execute(self, context):
         # get everything we need to reference...
         prefs = bpy.context.preferences.addons["MrMannequinsTools"].preferences
-        iport = prefs.Import_props[prefs.import_active] if prefs.import_active in prefs.import_props else prefs.import_default
+        iport = prefs.import_props[prefs.import_active] if prefs.import_active in prefs.import_props else prefs.import_default
         _functions_.run_import(iport)
         return {'FINISHED'} # {'CANCELLED'}
         # bpy.ops.ed.undo()
