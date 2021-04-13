@@ -445,6 +445,9 @@ def mesh_export(eport, sk_meshes, st_meshes):
 
 def run_export(eport):
     unit_scaling = eport.export_scale * bpy.context.scene.unit_settings.scale_length
+    # we don't want to be auto keyframing anything on export, so switch it off...
+    is_auto_keying = bpy.context.scene.tool_settings.use_keyframe_insert_auto
+    bpy.context.scene.tool_settings.use_keyframe_insert_auto = False
     # get the meshes we want to export...
     st_meshes = [ob for ob in bpy.context.selected_objects if ob.type == 'MESH' and not ob.find_armature()]
     sk_meshes = [ob for ob in bpy.context.selected_objects if ob.type == 'MESH' and ob.find_armature()]
@@ -480,6 +483,8 @@ def run_export(eport):
     # if we are batch/cluster exporting meshes, export them...
     if eport.meshes:
         mesh_export(eport, sk_meshes, st_meshes)
+    # set auto keying back to whatever it was...
+    bpy.context.scene.tool_settings.use_keyframe_insert_auto = is_auto_keying
 
 #------------------------------------------------------------------------------------------------------------------------------------------------------#
 
@@ -799,7 +804,10 @@ def import_meshes(iport, sk_meshes, st_meshes, active):
             sk_mesh.parent = active
 
 def run_import(iport):
-    # unit_scaling = 1.0 / (100 * unit_scale)
+    # we don't want to be auto keyframing anything on export, so switch it off...
+    is_auto_keying = bpy.context.scene.tool_settings.use_keyframe_insert_auto
+    bpy.context.scene.tool_settings.use_keyframe_insert_auto = False
+    # get some references...
     active = bpy.context.view_layer.objects.active
     existing_objects = {ob : ob.type for ob in bpy.data.objects}
     existing_actions = {ac : ac.frame_range for ac in bpy.data.actions}
@@ -899,6 +907,8 @@ def run_import(iport):
         # then re-apply parenting...
         for child, parent in parenting.items():
             child.parent = parent
+    # set auto keying back to whatever it was...
+    bpy.context.scene.tool_settings.use_keyframe_insert_auto = is_auto_keying
 
 #------------------------------------------------------------------------------------------------------------------------------------------------------#
 
