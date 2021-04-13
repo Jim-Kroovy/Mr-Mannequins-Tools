@@ -1,4 +1,4 @@
-# Mr Mannequins Tools
+# Mr Mannequins Tools - 1.4.5
 
 ![Cover Image](MrMannequins_Cover.jpg)
 
@@ -30,7 +30,7 @@ You can also find the contents of this readme on the [UE4 Forum Post](https://fo
 
 - **Want to get to know me a little?** Hello i'm Jim and i have been working with Blender and UE4 since 2014 and Python since 2018 and i have learned many little tricks and become very familiar with almost every aspect of the Blender API and UE4 Blueprints. I thoroughly enjoy writing Python and i can easily spend 12-16 hours a day working in Blender on add-ons if i get the chance. So far i haven't found anything i can't do in Unreal Engine and i pride myself on the game logic i'm capable of producing. I'm strongest with Armatures and Rigging and weakest with Materials and Lighting.
 
-- **Please report bugs!** As long as it's not a bug involving another add-on i will probably take a look at it. See section 4.
+- **Please report bugs!** As long as it's not a bug involving other add-ons i will probably take a look at it. See section 4.
 
 - **Request new add-ons and features!** I'm always looking for ideas both big and small and it's fun making making mannequin themed templates! See section 4.
 

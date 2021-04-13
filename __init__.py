@@ -39,7 +39,7 @@
 bl_info = {
     "name": "Mr Mannequins Tools",
     "author": "James Goldsworthy (Jim Kroovy)",
-    "version": (1, 4, 0),
+    "version": (1, 4, 5),
     "blender": (2, 91, 0),
     "location": "3D View > Object > Add | File > Import/Export",
     "description": "One UE4 Mannequin (with material) ready for animation and export and a bunch of other mannequin themed mesh and armature templates",
@@ -82,7 +82,7 @@ def jk_mmt_enable_addons():
     else:
         # otherwise it needs to be installed and enabled...
         print("Installing: BLEND-ArmatureDeformControls")
-        bpy.ops.preferences.addon_install(filepath=os.path.join(resources, 'BLEND-ArmatureDeformControls-1.0.0.zip'))
+        bpy.ops.preferences.addon_install(filepath=os.path.join(resources, 'BLEND-ArmatureDeformControls-1.0.zip'))
         bpy.ops.preferences.addon_enable(module='BLEND-ArmatureDeformControls')
     # if rigging library is already installed...
     if 'BLEND-ArmatureRiggingLibrary' in addons:
@@ -92,7 +92,7 @@ def jk_mmt_enable_addons():
     else:
         # otherwise it needs to be installed and enabled...
         print("Installing: BLEND-ArmatureRiggingLibrary")
-        bpy.ops.preferences.addon_install(filepath=os.path.join(resources, 'BLEND-ArmatureRiggingLibrary-1.0.0.zip'))
+        bpy.ops.preferences.addon_install(filepath=os.path.join(resources, 'BLEND-ArmatureRiggingLibrary-1.0.zip'))
         bpy.ops.preferences.addon_enable(module='BLEND-ArmatureRiggingLibrary')
 
     # check version of rigging add-ons at some point...
