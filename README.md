@@ -1,4 +1,4 @@
-# Mr Mannequins Tools - 1.4.5
+# Mr Mannequins Tools
 
 ![Cover Image](MrMannequins_Cover.jpg)
 

@@ -73,33 +73,34 @@ def jk_mmt_enable_addons():
     # get our resources folder and all add-ons and if they are enabled/loaded into a dictionary...
     prefs = bpy.context.preferences.addons["MrMannequinsTools"].preferences
     resources = prefs.resources
-    addons = {mod_name : addon_utils.check(mod_name) for path in addon_utils.paths() for mod_name, _ in bpy.path.module_names(path)}
-    # if control bones is already installed...
-    if 'BLEND-ArmatureDeformControls' in addons:
-        # if it's disabled, enable it...
-        if not addons['BLEND-ArmatureDeformControls'][0]:
-            bpy.ops.preferences.addon_enable(module='BLEND-ArmatureDeformControls')
-    else:
-        # otherwise it needs to be installed and enabled...
-        print("Installing: BLEND-ArmatureDeformControls")
-        bpy.ops.preferences.addon_install(filepath=os.path.join(resources, 'BLEND-ArmatureDeformControls-1.0.zip'))
-        bpy.ops.preferences.addon_enable(module='BLEND-ArmatureDeformControls')
-    # if rigging library is already installed...
-    if 'BLEND-ArmatureRiggingLibrary' in addons:
-        # if it's disabled, enable it...
-        if not addons['BLEND-ArmatureRiggingLibrary'][0]:
-            bpy.ops.preferences.addon_enable(module='BLEND-ArmatureRiggingLibrary')
-    else:
-        # otherwise it needs to be installed and enabled...
-        print("Installing: BLEND-ArmatureRiggingLibrary")
-        bpy.ops.preferences.addon_install(filepath=os.path.join(resources, 'BLEND-ArmatureRiggingLibrary-1.0.zip'))
-        bpy.ops.preferences.addon_enable(module='BLEND-ArmatureRiggingLibrary')
-
-    # check version of rigging add-ons at some point...
-    #versions = {addon.bl_info['name'] : addon.bl_info.get('version') for addon in addon_utils.modules() 
-        #if addon.bl_info['name'] in ['BLEND-ArmatureDeformControls', 'BLEND-ArmatureRiggingLibrary']}
-    #print(versions)
-    
+    # then get the add-on versions... (if they are installed)
+    versions = {addon.__name__ : addon.bl_info.get('version') for addon in addon_utils.modules()
+        if addon.bl_info['name'] in ['B.L.E.N.D - Armature Deform Controls', 'B.L.E.N.D - Armature Rigging Library']}
+    # and declare the dependencies...
+    dependencies = [{'name' : "BLEND-ArmatureDeformControls", 'version' : (1, 0, 0)},
+        {'name' : "BLEND-ArmatureRiggingLibrary", 'version' : (1, 0, 0)}]
+    # as Mr Mannequins depends on and ships with some of my other blender add-ons...
+    for dependency in dependencies:
+        name, version = dependency['name'], dependency['version']
+        # if the add-on is installed...
+        if name in versions:
+            # if the right version is not installed...
+            if version != versions[name]:
+                zip_file = name + "-" + str(version[0]) + "." + str(version[1]) + ".zip"
+                # remove and reinstall from the version that shipped with Mr Mannequins...
+                override = bpy.context.copy()
+                override['area'] = bpy.context.window_manager.windows[0].screen.areas[0]
+                # remove operator needs an area to tag for redraw... (seems to work without but spits error and stops iterarion)
+                bpy.ops.preferences.addon_remove(override, module=name)
+                bpy.ops.preferences.addon_install(filepath=os.path.join(resources, zip_file))
+            # check if the add-on is enabled, if not then enable it... # addon_utils.check(mod_name) 
+            if name not in bpy.context.preferences.addons:
+                bpy.ops.preferences.addon_enable(module=name)
+        else:
+            # otherwise it wasn't installed, so install and enable it...
+            zip_file = name + "-" + str(version[0]) + "." + str(version[1]) + ".zip"
+            bpy.ops.preferences.addon_install(filepath=os.path.join(resources, zip_file))
+            bpy.ops.preferences.addon_enable(module=name)
     # we'll need to update all driver dependencies... (why doesn't blender have an operator for this?)
     for armature in [ob for ob in bpy.data.objects if ob.type == 'ARMATURE' and ob.animation_data]:
         # so for every driver in every armature...
@@ -124,13 +125,13 @@ def register():
     print("Operators appended to menus...")
 
     # enable the add-ons Mr Mannequins rigging depends on...
-    bpy.app.timers.register(jk_mmt_enable_addons, first_interval=3)
-    print("Checking dependencies in 3 seconds...")
+    bpy.app.timers.register(jk_mmt_enable_addons, first_interval=0.5)
+    print("Checking dependencies...")
 
 def unregister():
     print("UNREGISTER: ['Mr Mannequins Tools']")
     bpy.types.VIEW3D_MT_add.remove(_functions_.add_load_to_menu)
-    bpy.types.TOPBAR_MT_file_export.remove(_functions_.add_import_to_menu)
+    bpy.types.TOPBAR_MT_file_import.remove(_functions_.add_import_to_menu)
     bpy.types.TOPBAR_MT_file_export.remove(_functions_.add_export_to_menu)
     print("Operators removed from menus...")
     
