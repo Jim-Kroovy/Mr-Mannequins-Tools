@@ -54,10 +54,10 @@ If you want to stay up to date on what i'm working on you can also subscribe/fol
 ## 2 - Installation
 *For the most part this is pretty straight forward... but just incase*
 
-- Download the latest add-on .zip from the releases section or Gumroad.
-- Remove all previous versions of Mr Mannequins Tools, Armature Rigging Library and Armature Deform Controls
+- Download the most recent add-on .zip file from the [latest releases](https://github.com/Jim-Kroovy/Mr-Mannequins-Tools/releases/latest).
+- Remove any previous versions of Mr Mannequins Tools. *(Removal not always needed but better safe than sorry)*
 - Installing an add-on to Blender is as simple as Edit > Preferences > Add-ons > Install > Navigate to the .zip file > Install Add-on.
-- If you want to clone and work with the repo locally you will need to extract any/all resources folders and their contents from the .zip files and then paste them into you local repo.
+- If you want to clone and work with the repo locally you will need to extract any/all resources folders and their contents from the .zip files and then paste them into your local repo.
 
 I'll add an instructional video here when i get the time.
 
