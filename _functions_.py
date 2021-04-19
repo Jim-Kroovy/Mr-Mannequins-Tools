@@ -76,7 +76,7 @@ def set_root(armature, length):
         bpy.ops.object.mode_set(mode='EDIT')
     # add the root bone with whatever length and the inverse matrix of the armatures parent...
     root_eb = armature.data.edit_bones.new(armature.name)
-    root_eb.length, root_eb.matrix = length, armature.matrix_parent_inverse
+    root_eb.length, root_eb.matrix = length, armature.matrix_parent_inverse.copy()
     # and parent any parentless bones to it...
     for e_bone in [eb for eb in armature.data.edit_bones if eb.parent == None]:
         e_bone.parent = root_eb
@@ -703,9 +703,9 @@ def import_armatures(iport, armatures, active):
                 # if we are going to apply the armatures scale...
                 if iport.apply_scale:
                     # quick and dirty fix for retargeting translation...
-                    use_trans, trans_names = iport.use_default_retargeting_translation, ['root', 'pelvis', 'ik_hand_l', 'ik_hand_r', 'ik_foot_l', 'ik_foot_r', 'ik_foot_root', 'ik_hand_root']
-                    # we need to apply its automatic scaling after import to its actions... (only scale fcurve locations that should be scaled)
-                    loc_curves = [fc for fc in action.fcurves if fc.data_path.endswith("location") and (fc.data_path.partition('"')[2].split('"')[0] in trans_names if use_trans else True)]
+                    use_trans, trans_names = iport.use_default_retargeting_translation, [root_pb.name if root_pb else 'root', 'pelvis', 'ik_hand_l', 'ik_hand_r', 'ik_foot_l', 'ik_foot_r', 'ik_foot_root', 'ik_hand_root']
+                    # we need to apply its automatic scaling after import to the pose bone curves... (only scale fcurve locations that should be scaled)
+                    loc_curves = [fc for fc in action.fcurves if (fc.data_path.endswith("location") and fc.data_path != 'location') and (fc.data_path.partition('"')[2].split('"')[0] in trans_names if use_trans else True)]
                     scale = armature.scale
                     for fcurve in loc_curves:
                         for key in fcurve.keyframe_points:
@@ -716,23 +716,37 @@ def import_armatures(iport, armatures, active):
                     # if using quick fix...
                     if use_trans:
                         # kill all location curves that didn't get scaled...
-                        del_curves = [fc for fc in action.fcurves if fc.data_path.endswith("location") and fc.data_path.partition('"')[2].split('"')[0] not in trans_names]
+                        del_curves = [fc for fc in action.fcurves if (fc.data_path.endswith("location") and fc.data_path != 'location') and fc.data_path.partition('"')[2].split('"')[0] not in trans_names]
+                        clear_pbs = {}
                         for del_curve in del_curves:
+                            bone_name = del_curve.data_path.partition('"')[2].split('"')[0]
                             action.fcurves.remove(del_curve)
+                            clear_pbs[bone_name] = armature.pose.bones.get(bone_name)
+                        # and clear any leftover translations on the bones...
+                        if clear_pbs:
+                            for name, pb in clear_pbs.items():
+                                if pb:
+                                    pb.location = [0.0, 0.0, 0.0]
                 # if we added a root...                
                 if root_pb:
                     # and the action has object curves...
                     ob_curves = [fc for fc in action.fcurves if fc.data_path in ["location", "rotation_quaternion", "rotation_euler", "rotation_axis_angle", "scale"]]
+                    #print(root_pb, ob_curves)
                     if ob_curves:
                         # make the action active...
                         armature.animation_data.action = action
-                        # and bake the root motion visually...
-                        bpy.ops.nla.bake(frame_start=int(round(action.frame_range[0], 0)), frame_end=int(round(action.frame_range[1], 0)),
-                            step=1, only_selected=True, visual_keying=True, clear_constraints=False, clear_parents=False, 
-                            use_current_action=True, clean_curves=True, bake_types={'POSE'})
-                        # and remove the old object fcurves...
-                        for fcurve in ob_curves:
-                            action.fcurves.remove(fcurve)
+                        # and iterate on the object fcurves...
+                        for ob_curve in ob_curves:
+                            # adding a root curve for each one... (ignoring scale)
+                            if ob_curve.data_path != "scale":
+                                root_path = 'pose.bones["' + root_pb.name + '"].' + ob_curve.data_path
+                                root_curve = action.fcurves.new(root_path, index=ob_curve.array_index, action_group=root_pb.name)
+                                # and adding root keys for each object key...
+                                for ob_key in ob_curve.keyframe_points:
+                                    # they should be the same as the created roots orientation will be the same as the armature objects...
+                                    root_curve.keyframe_points.insert(ob_key.co[0], ob_key.co[1], options=set(), keyframe_type='KEYFRAME')
+                            # then getting rid of the object fcurve...
+                            action.fcurves.remove(ob_curve)
                 # if we are attempting to bake animation to active armatures controls...
                 if iport.bake_to_active and active:
                     # make sure the active armature has it's control/deforms set up to recieve the animation...
@@ -809,6 +823,8 @@ def run_import(iport):
     bpy.context.scene.tool_settings.use_keyframe_insert_auto = False
     # get some references...
     active = bpy.context.view_layer.objects.active
+    if active and active.type != 'ARMATURE':
+        active = None
     existing_objects = {ob : ob.type for ob in bpy.data.objects}
     existing_actions = {ac : ac.frame_range for ac in bpy.data.actions}
     removal_objects = {}
