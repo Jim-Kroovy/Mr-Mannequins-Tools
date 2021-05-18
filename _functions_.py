@@ -1,7 +1,6 @@
 import bpy
 import math
 import os
-import inspect
 
 def add_export_to_menu(self, context):
     self.layout.operator("jk.export_fbx", icon='USER')
@@ -19,7 +18,29 @@ def show_message(message = "", title = "Message Box", icon = 'INFO'):
         self.layout.label(text=message)
 
     bpy.context.window_manager.popup_menu(draw, title = title, icon = icon)
-    
+
+# not sure if this functions works, will come back to it at some point...
+def clean_up_old_props():
+    # i'm a dumbass and like to rename some of my add-ons, so they might need cleaning up...
+    renamed = {"BLEND-ArmatureControlBones" : {'ARMATURE' : "jk_acb"}, "BLEND-ArmatureRiggingLibrary" : {'OBJECT' : "jk_arl"}}
+    for remove, props in renamed.items():
+        # if the old name exists in addons, remove the version with the old name...
+        if remove in bpy.context.preferences.addons.keys():
+            override = bpy.context.copy()
+            override['area'] = bpy.context.window_manager.windows[0].screen.areas[0]
+            # remove operator needs an area to tag for redraw... (seems to work without but spits error and stops iteration)
+            bpy.ops.preferences.addon_remove(override, module=remove)
+        # also clean up the old data if it exists... (removed add-on properties turn into custom properties after save/load?? how to handle this)
+        for flavour, prop in props.items():
+            if flavour == 'ARMATURE':
+                for ar in bpy.data.armatures:
+                    if prop in ar:
+                        del ar[prop]
+            elif flavour == 'OBJECT':
+                for ob in bpy.data.objects:
+                    if prop in ob:
+                        del ob[prop]
+
 # get distance between start and end...
 def get_distance(start, end):
     x = end[0] - start[0]
@@ -54,20 +75,20 @@ def scale_objects(unit_scaling, apply_loc, apply_rot):
     bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
     # iterate through all selected objects...
     for obj in bpy.context.selected_objects:
-        # scaling to the export scale multiplied by unit scale... (location should be scaled to get the right origins)
+        # multiply objects scale and location by unit scaling
         obj.location = [obj.location.x * unit_scaling, obj.location.y * unit_scaling, obj.location.z * unit_scaling]
         obj.scale = [obj.scale.x * unit_scaling, obj.scale.y * unit_scaling, obj.scale.z * unit_scaling]
-        # we don't want to actually apply the controller armatures, so deselect them...
+        # we don't want to actually apply the controller armatures transforms, so deselect them...
         if obj.type == 'ARMATURE' and obj.data.jk_adc.is_controller:
             obj.select_set(False)
-    # before applying the transforms that we want applied... (we always want to apply scale)
+    # before applying the transforms that we do want applied... (we always want to apply scale)
     bpy.ops.object.transform_apply(location=apply_loc, rotation=apply_rot, scale=True)
     # then iterate again on the armatures...
     armatures = [ob for ob in bpy.context.selected_objects if ob.type == 'ARMATURE']
     for arm in armatures:
-        # applying the transforms to the control/deforms...
+        # refreshing the constraints for the control/deforms...
         if arm.data.jk_adc.is_deformer:
-            arm.data.jk_adc.apply_transforms(arm.data.jk_adc.armature, arm)
+            arm.data.jk_adc.apply_transforms(arm.data.jk_adc.armature, use_identity=False)
 
 def set_root(armature, length):
     # we want to be able to add a root bone regardless of current mode...
@@ -115,11 +136,13 @@ def load_armature(self, templates):
             # link the armatures to the scene...
             bpy.context.collection.objects.link(armature)
             armature.select_set(True)
-            ob_chains = [rg for rg in armature.jk_arl.rigging if rg.flavour == 'SPLINE']
+            ob_chains = [rg for rg in armature.jk_arm.rigging if rg.flavour == 'SPLINE']
             for chain in ob_chains:
                 spline = chain.spline
                 # and link it to the scene... (but don't select it)
                 bpy.context.collection.objects.link(spline.spline.curve)
+            if armature.data.jk_adc.is_controller:
+                armature.data.jk_adc.subscribe_mode(armature)
 
     # return the armature so we can assign meshes to it...
     return armature
@@ -241,15 +264,14 @@ def load_template(self, templates):
         # if the armature was scaled with controls/rigging...
         if self.controls:
             # all the deform child of constraints need resetting... (all my templates are combined armatures)
-            armature.data.jk_adc.apply_transforms(armature, armature)
+            armature.data.jk_adc.apply_transforms(armature, use_identity=True)
         if self.rigging:
             # some of the rigging may need it's transforms applied...
-            for ri, rigging in enumerate(armature.jk_arl.rigging):
+            for ri, rigging in enumerate(armature.jk_arm.rigging):
                 if rigging.flavour in ['SPLINE', 'OPPOSABLE', 'PLANTIGRADE', 'DIGITIGRADE', 'TRACKING', 'TAIL_FOLLOW']:
-                    armature.jk_arl.active = ri
+                    armature.jk_arm.active = ri
                     chain = rigging.get_pointer()
                     chain.apply_transforms()
-
 
 #------------------------------------------------------------------------------------------------------------------------------------------------------#
 
@@ -743,7 +765,7 @@ def import_armatures(iport, armatures, active):
                                 root_curve = action.fcurves.new(root_path, index=ob_curve.array_index, action_group=root_pb.name)
                                 # and adding root keys for each object key...
                                 for ob_key in ob_curve.keyframe_points:
-                                    # they should be the same as the created roots orientation will be the same as the armature objects...
+                                    # they should be the same as the created roots, orientation will be the same as the armature objects...
                                     root_curve.keyframe_points.insert(ob_key.co[0], ob_key.co[1], options=set(), keyframe_type='KEYFRAME')
                             # then getting rid of the object fcurve...
                             action.fcurves.remove(ob_curve)

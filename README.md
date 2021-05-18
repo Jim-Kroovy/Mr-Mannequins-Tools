@@ -4,7 +4,7 @@
 
 **Mr Mannequins Tools is a [Blender](https://www.blender.org/) add-on that exports animations and weighted meshes that are directly compatible with the third person mannequin in Unreal Engine, without re-targeting anything... As if that wasn't useful enough, it also has several mannequin themed template meshes and armatures that are ready for you to animate and block out your projects with!**
 
-*This is a free project so please do not anticipate dedicated individual help unless you are supporting me finanically. I will help where i can but only when i have the time.*
+*This is a free project so please do not anticipate dedicated individual help unless you are supporting me financially. I will help where i can but only when i have the time.*
 
 Mr Mannequins Tools is what it is, tools for working with the UE4 mannequin from Blender. You can import mannequin animations/meshes, edit them and send them straight back to where they came from as smoothly as possible given Blenders FBX export script is a little... hacky. As of update 1.4.0 i have refactored Mr Mannequins Tools into being purely animation ready mannequin templates and my own import/export logic. 
 
@@ -16,7 +16,7 @@ I do not and will never support UE to Rigify as i would rather dig out my spleen
 
 If you have more general Blender + UE questions and issues feel free to join [Mr Mannequins Discord Server](https://discord.gg/wkPZJaH) to ask me and some of the experienced users of the add-on for help with Blender and Unreal Engine!
 
-You can also find the contents of this readme on the [UE4 Forum Post](https://forums.unrealengine.com/community/community-content-tools-and-tutorials/1661319-mannequin-compatible-animations-and-meshes-blender-to-ue4-free-addon-mr-mannequins-tools-1-1) go like it! (I'm not really very active on the UE forums though)
+You can also find the fresh new [UE4 Forum Post](https://forums.unrealengine.com/t/blender-unreal-mr-mannequins-tools-totally-free-super-easy-ultra-compatible/225561) go like it!
 
 *I don't expect you to read everything in this readme so here are the contents.*
 
@@ -134,9 +134,9 @@ I'll add an instructional video here when i get the time.
 - The mannequin themed Meshes, Materials and Armatures that i will be creating. (Not added in any specific order)
 - Contents:
     - [x] Femmequin (My Female Mannequin)
-    - [ ] Teenequin (Teenage Mannequins)
+    - [ ] Teennequin (Teenage Mannequins)
     - [ ] Kiddequin (Child Mannequin)
-    - [ ] Babequin (Baby Mannequin)
+    - [ ] Babbequin (Baby Mannequin)
     - [x] Bow and Arrow
     - [x] 1h Sword and Shield
     - [ ] Quiver, Sheath and Backpack
@@ -166,6 +166,7 @@ I'll add an instructional video here when i get the time.
     - [ ] Advanced object specific export method
     - [ ] Support for static collision bodies
     - [ ] Support for levels of detail
+    - [ ] Export UE Python import script
 
 **FBX Import Script**
 - *File > Import > Mr Mannequins FBX*

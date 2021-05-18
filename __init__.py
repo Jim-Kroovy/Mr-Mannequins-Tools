@@ -39,8 +39,8 @@
 bl_info = {
     "name": "Mr Mannequins Tools",
     "author": "James Goldsworthy (Jim Kroovy)",
-    "version": (1, 4, 7),
-    "blender": (2, 91, 0),
+    "version": (1, 4, 8),
+    "blender": (2, 92, 0),
     "location": "3D View > Object > Add | File > Import/Export",
     "description": "One UE4 Mannequin (with material) ready for animation and export and a bunch of other mannequin themed mesh and armature templates",
     "warning": "",
@@ -75,10 +75,10 @@ def jk_mmt_enable_addons():
     resources = prefs.resources
     # then get the add-on versions... (if they are installed)
     versions = {addon.__name__ : addon.bl_info.get('version') for addon in addon_utils.modules()
-        if addon.bl_info['name'] in ['B.L.E.N.D - Armature Deform Controls', 'B.L.E.N.D - Armature Rigging Library']}
+        if addon.bl_info['name'] in ['B.L.E.N.D - Armature Deform Controls', 'B.L.E.N.D - Armature Rigging Modules']}
     # and declare the dependencies...
     dependencies = [{'name' : "BLEND-ArmatureDeformControls", 'version' : (1, 0, 0)},
-        {'name' : "BLEND-ArmatureRiggingLibrary", 'version' : (1, 0, 0)}]
+        {'name' : "BLEND-ArmatureRiggingModules", 'version' : (1, 0, 0)}]
     # as Mr Mannequins depends on and ships with some of my other blender add-ons...
     for dependency in dependencies:
         name, version = dependency['name'], dependency['version']
@@ -90,7 +90,7 @@ def jk_mmt_enable_addons():
                 # remove and reinstall from the version that shipped with Mr Mannequins...
                 override = bpy.context.copy()
                 override['area'] = bpy.context.window_manager.windows[0].screen.areas[0]
-                # remove operator needs an area to tag for redraw... (seems to work without but spits error and stops iterarion)
+                # remove operator needs an area to tag for redraw... (seems to work without but spits error and stops iteration)
                 bpy.ops.preferences.addon_remove(override, module=name)
                 bpy.ops.preferences.addon_install(filepath=os.path.join(resources, zip_file))
             # check if the add-on is enabled, if not then enable it... # addon_utils.check(mod_name) 
@@ -115,10 +115,6 @@ def register():
         register_class(cls)
     print("Classes registered...")
 
-    #bpy.types.Scene.jk_mmt = bpy.props.PointerProperty(type=_properties_.JK_PG_MMT_Scene, options=set())
-    #bpy.types.Object.jk_mmt = bpy.props.PointerProperty(type=_properties_.JK_PG_MMT_Object, options=set())
-    #print("Properties assigned...")
-    
     bpy.types.TOPBAR_MT_file_export.append(_functions_.add_export_to_menu)
     bpy.types.TOPBAR_MT_file_import.append(_functions_.add_import_to_menu)
     bpy.types.VIEW3D_MT_add.append(_functions_.add_load_to_menu)
@@ -134,10 +130,6 @@ def unregister():
     bpy.types.TOPBAR_MT_file_import.remove(_functions_.add_import_to_menu)
     bpy.types.TOPBAR_MT_file_export.remove(_functions_.add_export_to_menu)
     print("Operators removed from menus...")
-    
-    #del bpy.types.Object.jk_mmt
-    #del bpy.types.Scene.jk_mmt
-    #print("Properties deleted...")
     
     for cls in reversed(JK_MMT_classes):
         unregister_class(cls)
