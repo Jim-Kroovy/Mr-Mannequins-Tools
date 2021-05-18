@@ -14,7 +14,7 @@ Everything in Mr Mannequins Tools should work fine with [Send To Unreal](https:/
 
 I do not and will never support UE to Rigify as i would rather dig out my spleen with a rusty spoon than use a rigging add-on that i did not code myself... So please stop bugging me about Rigify, Auto Rig Pro, Rokoko and any other add-ons... Too many people keep asking me for help with them... i've tried them all and they are good but do not meet my standards or work for most of my use cases. It is not my problem if other add-ons do not work with mine. 
 
-If you have more general Blender + UE questions and issues feel free to join [Mr Mannequins Discord Server](https://discord.gg/wkPZJaH) to ask me and some of the experienced users of the add-on for help with Blender and Unreal Engine!
+If you have more general Blender + UE questions and issues feel free to join [Mr Mannequins Army](https://discord.gg/wkPZJaH) on discord to ask me and some of the experienced users of the add-on for help with Blender and Unreal Engine!
 
 You can also find the fresh new [UE4 Forum Post](https://forums.unrealengine.com/t/blender-unreal-mr-mannequins-tools-totally-free-super-easy-ultra-compatible/225561) go like it!
 
