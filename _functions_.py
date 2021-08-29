@@ -75,6 +75,10 @@ def scale_objects(unit_scaling, apply_loc, apply_rot):
     bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
     # iterate through all selected objects...
     for obj in bpy.context.selected_objects:
+        # if the object has more than one user make it single...
+        if obj.data.users > 1:
+            new_data = obj.data.copy()
+            obj.data = new_data
         # multiply objects scale and location by unit scaling
         obj.location = [obj.location.x * unit_scaling, obj.location.y * unit_scaling, obj.location.z * unit_scaling]
         obj.scale = [obj.scale.x * unit_scaling, obj.scale.y * unit_scaling, obj.scale.z * unit_scaling]
@@ -481,10 +485,6 @@ def run_export(eport):
     # sort out the armatures and their control/deforms...
     for armature in ac_armatures + sk_armatures:
         bpy.context.view_layer.objects.active = armature
-        # if the armature has more than one user make it single...
-        if armature.data.users > 1:
-            new_data = armature.data.copy()
-            armature.data = new_data
         # if the armature doesn't have control/deform bones, give it some...
         if not armature.data.jk_adc.is_controller:
             bpy.ops.jk.adc_edit_controls('EXEC_DEFAULT', action='ADD', only_deforms=True)
