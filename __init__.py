@@ -39,8 +39,8 @@
 bl_info = {
     "name": "Mr Mannequins Tools",
     "author": "James Goldsworthy (Jim Kroovy)",
-    "version": (1, 4, 8),
-    "blender": (2, 92, 0),
+    "version": (1, 4, 9),
+    "blender": (2, 93, 0),
     "location": "3D View > Object > Add | File > Import/Export",
     "description": "One UE4 Mannequin (with material) ready for animation and export and a bunch of other mannequin themed mesh and armature templates",
     "warning": "",
@@ -77,8 +77,8 @@ def jk_mmt_enable_addons():
     versions = {addon.__name__ : addon.bl_info.get('version') for addon in addon_utils.modules()
         if addon.bl_info['name'] in ['B.L.E.N.D - Armature Deform Controls', 'B.L.E.N.D - Armature Rigging Modules']}
     # and declare the dependencies...
-    dependencies = [{'name' : "BLEND-ArmatureDeformControls", 'version' : (1, 0, 0)},
-        {'name' : "BLEND-ArmatureRiggingModules", 'version' : (1, 0, 0)}]
+    dependencies = [{'name' : "BLEND-ArmatureDeformControls", 'version' : (1, 1, 0)},
+        {'name' : "BLEND-ArmatureRiggingModules", 'version' : (1, 1, 0)}]
     # as Mr Mannequins depends on and ships with some of my other blender add-ons...
     for dependency in dependencies:
         name, version = dependency['name'], dependency['version']
