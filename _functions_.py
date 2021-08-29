@@ -366,6 +366,11 @@ def action_export(eport, ac_armatures):
                 for pb in armature.pose.bones:
                     pb.location, pb.scale, pb.rotation_euler = [0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [0.0, 0.0, 0.0]
                     pb.rotation_quaternion, pb.rotation_axis_angle = [1.0, 0.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0]
+                # kill any object keyframes... (maybe add convert object to root motion option in future?)
+                ob_curves = [fc for fc in action.fcurves if fc.data_path in ["location", "rotation_quaternion", "rotation_euler", "rotation_axis_angle", "scale"]]
+                if ob_curves:
+                    for ob_curve in ob_curves:
+                        action.fcurves.remove(ob_curve)
                 # setting the action to be the active one...
                 armature.animation_data.action = action
                 # selecting and exporting only the deformer...
