@@ -18,6 +18,8 @@ If you have more general Blender + UE questions and issues feel free to join [Mr
 
 You can also find the fresh new [UE4 Forum Post](https://forums.unrealengine.com/t/blender-unreal-mr-mannequins-tools-totally-free-super-easy-ultra-compatible/225561) go like it!
 
+See what's being fixed/improved in the [Github Project](https://github.com/Jim-Kroovy/Mr-Mannequins-Tools/projects/1)
+
 *I don't expect you to read everything in this readme so here are the contents.*
 
 1. **Support Development:** Promotion for financial support because i put many hours into development every week.
@@ -32,11 +34,11 @@ You can also find the fresh new [UE4 Forum Post](https://forums.unrealengine.com
 
 - **Please report bugs!** As long as it's not a bug involving other add-ons i will probably take a look at it. See section 4.
 
-- **Request new add-ons and features!** I'm always looking for ideas both big and small and it's fun making making mannequin themed templates! See section 4.
+- **Request new features!** I'm always looking for ideas both big and small and it's fun making making mannequin themed templates! See section 4.
 
 - **This is an ongoing project!** I will continue to update and improve all the code and templates as i myself learn and advance my Blender and Python abilities.
 
-- **Let there be guides!** You can find both written and video guides for Mr Mannequins Tools below in the features section. See section 5.
+- **Let there be guides!** You can find any written and video guides for Mr Mannequins Tools below in the features section. See section 5.
 
 ## 1 - Support Development
 *Please consider supporting financially! More help means more time i can put into updates, new features and support*
