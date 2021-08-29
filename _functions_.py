@@ -273,7 +273,7 @@ def load_template(self, templates):
                     chain = rigging.get_pointer()
                     chain.apply_transforms()
             rigging.get_sources()
-            rigging.subscribe_mode()
+        armature.jk_arm.subscribe_mode()
 
 #------------------------------------------------------------------------------------------------------------------------------------------------------#
 
