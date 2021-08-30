@@ -1,8 +1,8 @@
 ---
 name: Bug Report
 about: Let me know if something is broken.
-title: "[BUG]"
-labels: ''
+title: ""
+labels: 'bug'
 assignees: ''
 
 ---
@@ -17,7 +17,7 @@ assignees: ''
 3. Scroll down to '....'
 4. See error
 
-**Expected behavior**
+**Expected behaviour**
 *A clear and concise description of what you expected to happen.*
 
 **Screenshots**
