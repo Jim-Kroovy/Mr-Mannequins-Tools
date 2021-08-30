@@ -387,6 +387,12 @@ def action_export(eport, ac_armatures):
         else:
             if not armature.data.jk_adc.armature.animation_data:
                 armature.data.jk_adc.armature.animation_data_create()
+            # kill any object keyframes... (maybe add convert object to root motion option in future?)
+            for action in bpy.data.actions:
+                ob_curves = [fc for fc in action.fcurves if fc.data_path in ["location", "rotation_quaternion", "rotation_euler", "rotation_axis_angle", "scale"]]
+                if ob_curves:
+                    for ob_curve in ob_curves:
+                        action.fcurves.remove(ob_curve)
             # bake all actions to the deform bones... (I'm not happy about this but it's a lot simpler than the alternatives)
             bpy.ops.jk.adc_bake_deforms('EXEC_DEFAULT', armature=armature.name, bake_step=1, only_active=False)
             # deselect everything and select the deforming armature...
