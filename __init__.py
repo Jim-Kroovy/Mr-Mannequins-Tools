@@ -44,7 +44,7 @@ bl_info = {
     "location": "3D View > Object > Add | File > Import/Export",
     "description": "One UE4 Mannequin (with material) ready for animation and export and a bunch of other mannequin themed mesh and armature templates",
     "warning": "",
-    "wiki_url": "https://www.youtube.com/c/JimKroovy",
+    "wiki_url": "https://github.com/Jim-Kroovy/Mr-Mannequins-Tools/wiki",
     "category": "Characters",
     }
 
