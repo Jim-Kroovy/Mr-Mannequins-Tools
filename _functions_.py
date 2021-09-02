@@ -75,6 +75,10 @@ def scale_objects(unit_scaling, apply_loc, apply_rot):
     bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
     # iterate through all selected objects...
     for obj in bpy.context.selected_objects:
+        # if the object has more than one user make it single...
+        if obj.data.users > 1:
+            new_data = obj.data.copy()
+            obj.data = new_data
         # multiply objects scale and location by unit scaling
         obj.location = [obj.location.x * unit_scaling, obj.location.y * unit_scaling, obj.location.z * unit_scaling]
         obj.scale = [obj.scale.x * unit_scaling, obj.scale.y * unit_scaling, obj.scale.z * unit_scaling]
@@ -273,7 +277,7 @@ def load_template(self, templates):
                     chain = rigging.get_pointer()
                     chain.apply_transforms()
             rigging.get_sources()
-            rigging.subscribe_mode()
+        armature.jk_arm.subscribe_mode()
 
 #------------------------------------------------------------------------------------------------------------------------------------------------------#
 
@@ -362,6 +366,11 @@ def action_export(eport, ac_armatures):
                 for pb in armature.pose.bones:
                     pb.location, pb.scale, pb.rotation_euler = [0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [0.0, 0.0, 0.0]
                     pb.rotation_quaternion, pb.rotation_axis_angle = [1.0, 0.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0]
+                # kill any object keyframes... (maybe add convert object to root motion option in future?)
+                ob_curves = [fc for fc in action.fcurves if fc.data_path in ["location", "rotation_quaternion", "rotation_euler", "rotation_axis_angle", "scale"]]
+                if ob_curves:
+                    for ob_curve in ob_curves:
+                        action.fcurves.remove(ob_curve)
                 # setting the action to be the active one...
                 armature.animation_data.action = action
                 # selecting and exporting only the deformer...
@@ -378,6 +387,12 @@ def action_export(eport, ac_armatures):
         else:
             if not armature.data.jk_adc.armature.animation_data:
                 armature.data.jk_adc.armature.animation_data_create()
+            # kill any object keyframes... (maybe add convert object to root motion option in future?)
+            for action in bpy.data.actions:
+                ob_curves = [fc for fc in action.fcurves if fc.data_path in ["location", "rotation_quaternion", "rotation_euler", "rotation_axis_angle", "scale"]]
+                if ob_curves:
+                    for ob_curve in ob_curves:
+                        action.fcurves.remove(ob_curve)
             # bake all actions to the deform bones... (I'm not happy about this but it's a lot simpler than the alternatives)
             bpy.ops.jk.adc_bake_deforms('EXEC_DEFAULT', armature=armature.name, bake_step=1, only_active=False)
             # deselect everything and select the deforming armature...
