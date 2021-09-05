@@ -14,8 +14,8 @@ You can also find the fresh new [UE4 Forum Post](https://forums.unrealengine.com
 
 *Please consider supporting financially! More help means more time i can put into updates, new features and support*
 
-- Donate to the add-on on [Gumroad](https://gumroad.com/jimkroovy)
-- Purchase on [Blender Market](https://blendermarket.com/products/mr-mannequins-tools) - Gives the Blender Foundation 10% of profits.
-- Support me on [Patreon](https://patreon.com/JimKroovy) - Gives you higher priority in my discord server for feedback, ideas and support.
+- Donate what you can afford to your favourite add-ons on [Gumroad](https://gumroad.com/jimkroovy) if you are a tight for cash.
+- Purchase the things on [Blender Market](https://blendermarket.com/creators/jim-kroovy) where i give 10% of profit to Blender.
+- Support me on [Patreon](https://patreon.com/JimKroovy) to get higher priority in my discord server for feedback, ideas and support.
 
-If you want to stay up to date on what i'm working on you can also subscribe/follow me on [Youtube](https://www.youtube.com/c/JimKroovy), [Twitter](https://twitter.com/JimKroovy), [Facebook](https://www.facebook.com/JimKroovy/) and [Instagram](https://www.instagram.com/jimkroovy/)
+If you want to stay up to date on what i'm working on you can also follow me on [Youtube](https://www.youtube.com/c/JimKroovy), [Twitter](https://twitter.com/JimKroovy), [Facebook](https://www.facebook.com/JimKroovy/) and [Instagram](https://www.instagram.com/jimkroovy/)
