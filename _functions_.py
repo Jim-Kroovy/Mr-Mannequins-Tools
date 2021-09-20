@@ -276,7 +276,7 @@ def load_template(self, templates):
                     armature.jk_arm.active = ri
                     chain = rigging.get_pointer()
                     chain.apply_transforms()
-            rigging.get_sources()
+                rigging.get_sources()
         armature.jk_arm.subscribe_mode()
 
 #------------------------------------------------------------------------------------------------------------------------------------------------------#
@@ -868,7 +868,7 @@ def run_import(iport):
     existing_actions = {ac : ac.frame_range for ac in bpy.data.actions}
     removal_objects = {}
     # get the paths for what needs importing...
-    fbx_paths= get_fbx_paths(iport)
+    fbx_paths = get_fbx_paths(iport)
     armatures, sk_meshes, st_meshes = {}, [], []
     pre_fps = bpy.context.scene.render.fps
     # iterate on the fbx paths importing everything we want to import...          
@@ -903,6 +903,7 @@ def run_import(iport):
                 for new_action, fps_scale in new_actions.items():
                     # adding them to the assigned armature with their fps scale...
                     armatures[armature][new_action] = fps_scale
+                    _, new_action.name = os.path.split(path)
                 # then iterate on any new meshes that use the new armature...
                 for new_mesh in [me for me, ar in new_meshes.items() if ar == new_armature]:
                     # switch their armature modifiers to the assigned armature...
@@ -913,7 +914,7 @@ def run_import(iport):
                         new_mesh.parent = armature
             else:
                 # otherwise this is a new armature we'll want to process it...
-                armatures[new_armature] = new_actions#new_armatures[new_armature]
+                armatures[new_armature] = new_actions
         # if we are importing meshes from this fbx... 
         if bools['Meshes']:
             # we can just append the new meshes to their lists...
