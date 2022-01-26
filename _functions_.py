@@ -377,7 +377,7 @@ def action_export(eport, ac_armatures):
                 bpy.ops.object.select_all(action='DESELECT')
                 armature.data.jk_adc.armature.select_set(True)
                 bpy.context.view_layer.objects.active = armature.data.jk_adc.armature
-                path = os.path.join(bpy.path.abspath(eport.path_actions), eport.prefix_action + action.name + ".fbx")
+                path = os.path.join(bpy.path.abspath(eport.path_actions), bpy.path.clean_name(eport.prefix_action + action.name) + ".fbx")
                 existing = bpy.data.objects.get("Armature")
                 if existing:
                     existing.name = armature.name
@@ -417,7 +417,7 @@ def action_export(eport, ac_armatures):
                 armature.select_set(False)
             # and export only the deformer...
             bpy.context.view_layer.objects.active = armature.data.jk_adc.armature
-            path = os.path.join(bpy.path.abspath(eport.path_actions), eport.prefix_action + armature.name + ".fbx")
+            path = os.path.join(bpy.path.abspath(eport.path_actions), bpy.path.clean_name(eport.prefix_action + armature.name) + ".fbx")
             existing = bpy.data.objects.get("Armature")
             if existing:
                 existing.name = armature.data.jk_adc.armature.name
@@ -435,7 +435,7 @@ def mesh_export(eport, sk_meshes, st_meshes):
             sk_mesh.select_set(True)
             sk_armature.select_set(True)
             bpy.context.view_layer.objects.active = sk_armature
-            path = os.path.join(bpy.path.abspath(eport.path_meshes), eport.prefix_skeletal + sk_mesh.name + ".fbx")
+            path = os.path.join(bpy.path.abspath(eport.path_meshes), bpy.path.clean_name(eport.prefix_skeletal + sk_mesh.name) + ".fbx")
             existing = bpy.data.objects.get("Armature")
             if existing:
                 existing.name = sk_armature.name
@@ -447,7 +447,7 @@ def mesh_export(eport, sk_meshes, st_meshes):
             bpy.ops.object.select_all(action='DESELECT')
             st_mesh.select_set(True)
             bpy.context.view_layer.objects.active = st_mesh
-            path = os.path.join(bpy.path.abspath(eport.path_meshes), eport.prefix_static + st_mesh.name + ".fbx")
+            path = os.path.join(bpy.path.abspath(eport.path_meshes), bpy.path.clean_name(eport.prefix_static + st_mesh.name) + ".fbx")
             export_fbx(path, eport, False, types={'MESH'})        
     else:
         # if we are cluster exporting meshes we need to gather the skeletal meshes by armature...
@@ -464,7 +464,7 @@ def mesh_export(eport, sk_meshes, st_meshes):
                 bpy.ops.object.select_all(action='DESELECT')
                 sk_armature.select_set(True)
                 bpy.context.view_layer.objects.active = sk_armature
-                path = os.path.join(bpy.path.abspath(eport.path_meshes), eport.prefix_skeletal + sk_armature.name + ".fbx")
+                path = os.path.join(bpy.path.abspath(eport.path_meshes), bpy.path.clean_name(eport.prefix_skeletal + sk_armature.name) + ".fbx")
                 existing = bpy.data.objects.get("Armature")
                 if existing:
                     existing.name = sk_armature.name
@@ -479,7 +479,7 @@ def mesh_export(eport, sk_meshes, st_meshes):
             for st_mesh in st_meshes:
                 st_mesh.select_set(True)
                 bpy.context.view_layer.objects.active = st_mesh
-            path = os.path.join(bpy.path.abspath(eport.path_meshes), eport.prefix_static + st_meshes[0].name + ".fbx")
+            path = os.path.join(bpy.path.abspath(eport.path_meshes), bpy.path.clean_name(eport.prefix_static + st_meshes[0].name) + ".fbx")
             export_fbx(path, eport, False, types={'MESH'})
 
 def run_export(eport):
