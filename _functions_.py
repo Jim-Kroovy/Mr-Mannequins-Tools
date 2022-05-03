@@ -92,7 +92,7 @@ def scale_objects(unit_scaling, apply_loc, apply_rot):
     for arm in armatures:
         # refreshing the constraints for the control/deforms...
         if arm.data.jk_adc.is_deformer:
-            arm.data.jk_adc.apply_transforms(arm.data.jk_adc.armature, use_identity=False)
+            arm.data.jk_adc.apply_transforms(arm.data.jk_adc.get_deformer(), use_identity=False)
 
 def set_root(armature, length):
     # we want to be able to add a root bone regardless of current mode...
@@ -492,7 +492,7 @@ def run_export(eport):
     sk_meshes = [ob for ob in bpy.context.selected_objects if ob.type == 'MESH' and ob.find_armature()]
     # get the armatures we want to export...
     ac_armatures = [ob for ob in bpy.context.selected_objects if ob.type == 'ARMATURE']
-    sk_armatures = [sk.find_armature().data.jk_adc.armature if sk.find_armature().data.jk_adc.is_deformer else sk.find_armature() for sk in sk_meshes]
+    sk_armatures = [sk.find_armature().data.jk_adc.get_controller() for sk in sk_meshes] # if sk.find_armature().data.jk_adc.is_deformer else sk.find_armature() for sk in sk_meshes]
     # sort out the armatures and their control/deforms...
     for armature in ac_armatures + sk_armatures:
         bpy.context.view_layer.objects.active = armature
@@ -510,7 +510,7 @@ def run_export(eport):
             armature.data.jk_adc.hide_deforms = False
         else:
             # if they weren't hiding we'll need to select the deform armature... (it got deselected on invoke)
-            armature.data.jk_adc.armature.select_set(True)
+            armature.data.jk_adc.get_deformer().select_set(True)
         # and make sure we have the control armature selected also...
         armature.select_set(True)
     bpy.ops.object.mode_set(mode='OBJECT')

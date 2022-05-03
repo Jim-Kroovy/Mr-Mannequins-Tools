@@ -183,7 +183,7 @@ class JK_OT_MMT_Export_FBX(bpy.types.Operator):
             if adc.is_deformer and not adc.use_combined:
                 # make sure we only have the controller selected...
                 armature.select_set(False)
-                adc.armature.select_set(True)
+                adc.get_controller().select_set(True)
         return context.window_manager.invoke_props_dialog(self)
 
     def draw(self, context):
