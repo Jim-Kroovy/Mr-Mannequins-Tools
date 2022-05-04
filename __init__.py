@@ -39,7 +39,7 @@
 bl_info = {
     "name": "Mr Mannequins Tools",
     "author": "James Goldsworthy (Jim Kroovy)",
-    "version": (1, 4, 11),
+    "version": (1, 5, 0),
     "blender": (3, 0, 0),
     "location": "3D View > Object > Add | File > Import/Export",
     "description": "One UE4 Mannequin (with material) ready for animation and export and a bunch of other mannequin themed mesh and armature templates",

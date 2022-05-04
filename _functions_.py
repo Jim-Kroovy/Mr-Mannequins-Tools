@@ -66,6 +66,13 @@ def get_action_bone_names(action, armature=None):
         for fc in action.fcurves if fc.data_path.startswith("pose.bones")}
 
 def scale_objects(unit_scaling, apply_loc, apply_rot):
+    
+    selected = {ob : [] for ob in bpy.context.selected_objects}
+    #hierarchy = {}
+    for ob in bpy.context.selected_objects:
+        if ob.parent in selected:
+            selected[ob.parent].append(ob)
+
     # clearing any transforms we don't want applied...
     if not apply_rot:
         bpy.ops.object.rotation_clear(clear_delta=False)
@@ -74,7 +81,7 @@ def scale_objects(unit_scaling, apply_loc, apply_rot):
     # clear all parenting but keep transforms...
     bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
     # iterate through all selected objects...
-    for obj in bpy.context.selected_objects:
+    for obj in selected.keys():
         # if the object has more than one user make it single...
         if obj.data.users > 1:
             new_data = obj.data.copy()
@@ -85,14 +92,27 @@ def scale_objects(unit_scaling, apply_loc, apply_rot):
         # we don't want to actually apply the controller armatures transforms, so deselect them...
         if obj.type == 'ARMATURE' and obj.data.jk_adc.is_controller:
             obj.select_set(False)
+
     # before applying the transforms that we do want applied... (we always want to apply scale)
     bpy.ops.object.transform_apply(location=apply_loc, rotation=apply_rot, scale=True)
+    # return object hierachy...
+    for ob, children in selected.items():
+        if children:
+            bpy.ops.object.select_all(action='DESELECT')
+            ob.select_set(True)
+            for child in children:
+                child.select_set(True)
+            bpy.context.view_layer.objects.active = ob
+            bpy.ops.object.parent_set(type='OBJECT', keep_transform=True)
+            #obj.parent = parent
+            #obj.scale = [1.0, 1.0, 1.0]
     # then iterate again on the armatures...
     armatures = [ob for ob in bpy.context.selected_objects if ob.type == 'ARMATURE']
     for arm in armatures:
         # refreshing the constraints for the control/deforms...
         if arm.data.jk_adc.is_deformer:
-            arm.data.jk_adc.apply_transforms(arm.data.jk_adc.get_deformer(), use_identity=False)
+            arm.data.jk_adc.apply_transforms(use_identity=False)
+    
 
 def set_root(armature, length):
     # we want to be able to add a root bone regardless of current mode...
@@ -343,87 +363,93 @@ def export_s2u(use_selection): # ONLY SUPPORTS MESHES AND ARMATURES COME BACK AN
 def action_export(eport, ac_armatures):
     # for each action armature...
     for armature in ac_armatures:
+        print(armature, armature.data.jk_adc.is_controller, armature.data.jk_adc.get_deformer())
         if not armature.animation_data:
             armature.animation_data_create()
-        if not armature.data.jk_adc.armature.animation_data:
-            armature.data.jk_adc.armature.animation_data_create()
-        # if we should be muting NLA strips, mute them...
-        if eport.mute_nla and not eport.fbx_props.use_nla:
-            for track in armature.animation_data.nla_tracks:
-                track.mute = True
-        # get all the actions to export and iterate on them...
-        only_active = not (eport.batch_actions or eport.fbx_props.all_actions or eport.fbx_props.use_nla)
-        if eport.mute_nla:
-            for track in armature.animation_data.nla_tracks:
-                track.mute = True
-        # if we are batch exporting actions or only exporting the active ones...
-        if eport.batch_actions or only_active:
-            actions, _ = armature.data.jk_adc.get_actions(armature, only_active)
-            for action in actions.keys():
-                # set the scenes frame start/end from the actions frame range...
-                bpy.context.scene.frame_start, bpy.context.scene.frame_end = int(round(action.frame_range[0], 0)), int(round(action.frame_range[1], 0))
-                # clear the controllers pose transforms...
-                for pb in armature.pose.bones:
-                    pb.location, pb.scale, pb.rotation_euler = [0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [0.0, 0.0, 0.0]
-                    pb.rotation_quaternion, pb.rotation_axis_angle = [1.0, 0.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0]
+        deformer = armature.data.jk_adc.get_deformer()
+        if deformer:
+            if not deformer.animation_data:
+                deformer.animation_data_create()
+            # if we should be muting NLA strips, mute them...
+            if eport.mute_nla and not eport.fbx_props.use_nla:
+                for track in armature.animation_data.nla_tracks:
+                    track.mute = True
+            # get all the actions to export and iterate on them...
+            only_active = not (eport.batch_actions or eport.fbx_props.all_actions or eport.fbx_props.use_nla)
+            if eport.mute_nla:
+                for track in armature.animation_data.nla_tracks:
+                    track.mute = True
+            # if we are batch exporting actions or only exporting the active ones...
+            if eport.batch_actions or only_active:
+                actions, _ = armature.data.jk_adc.get_actions(armature, only_active)
+                for action in actions.keys():
+                    # set the scenes frame start/end from the actions frame range...
+                    bpy.context.scene.frame_start, bpy.context.scene.frame_end = int(round(action.frame_range[0], 0)), int(round(action.frame_range[1], 0))
+                    # clear the controllers pose transforms...
+                    for pb in armature.pose.bones:
+                        pb.location, pb.scale, pb.rotation_euler = [0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [0.0, 0.0, 0.0]
+                        pb.rotation_quaternion, pb.rotation_axis_angle = [1.0, 0.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0]
+                    # kill any object keyframes... (maybe add convert object to root motion option in future?)
+                    ob_curves = [fc for fc in action.fcurves if fc.data_path in ["location", "rotation_quaternion", "rotation_euler", "rotation_axis_angle", "scale"]]
+                    if ob_curves:
+                        for ob_curve in ob_curves:
+                            action.fcurves.remove(ob_curve)
+                    # setting the action to be the active one...
+                    armature.animation_data.action = action
+                    # selecting and exporting only the deformer...
+                    bpy.ops.object.select_all(action='DESELECT')
+                    deformer.select_set(True)
+                    bpy.context.view_layer.objects.active = deformer
+                    path = os.path.join(bpy.path.abspath(eport.path_actions), bpy.path.clean_name(eport.prefix_action + action.name) + ".fbx")
+                    existing = bpy.data.objects.get("Armature")
+                    if existing:
+                        existing.name = armature.name
+                    armature.name = "Armature"
+                    armature.data.pose_position = 'POSE'
+                    export_fbx(path, eport, True, types={'ARMATURE'})
+            else:
+                if not armature.data.jk_adc.armature.animation_data:
+                    armature.data.jk_adc.armature.animation_data_create()
                 # kill any object keyframes... (maybe add convert object to root motion option in future?)
-                ob_curves = [fc for fc in action.fcurves if fc.data_path in ["location", "rotation_quaternion", "rotation_euler", "rotation_axis_angle", "scale"]]
-                if ob_curves:
-                    for ob_curve in ob_curves:
-                        action.fcurves.remove(ob_curve)
-                # setting the action to be the active one...
-                armature.animation_data.action = action
-                # selecting and exporting only the deformer...
+                for action in bpy.data.actions:
+                    ob_curves = [fc for fc in action.fcurves if fc.data_path in ["location", "rotation_quaternion", "rotation_euler", "rotation_axis_angle", "scale"]]
+                    if ob_curves:
+                        for ob_curve in ob_curves:
+                            action.fcurves.remove(ob_curve)
+                # bake all actions to the deform bones... (I'm not happy about this but it's a lot simpler than the alternatives)
+                bpy.ops.jk.adc_bake_deforms('EXEC_DEFAULT', armature=armature.name, bake_step=1, only_active=False)
+                # deselect everything and select the deforming armature...
                 bpy.ops.object.select_all(action='DESELECT')
                 armature.data.jk_adc.armature.select_set(True)
+                # if the nla should influence export...
+                if eport.fbx_props.use_nla or not eport.mute_nla:
+                    # select the controlling armature and link it's animation data to the deformer...
+                    armature.select_set(True)
+                    bpy.context.view_layer.objects.active = armature
+                    bpy.ops.object.make_links_data(type='ANIMATION')
+                    # then get all the actions again so we have the baked ones too...
+                    actions, _ = armature.data.jk_adc.get_actions(armature, only_active)
+                    for source, baked in actions.items():
+                        # iterate through all the deformers NLA strips...
+                        for track in armature.data.jk_adc.armature.animation_data.nla_tracks:
+                            for strip in track.strips:
+                                # replacing source actions with baked ones...
+                                if strip.action == source:
+                                    strip.action = baked
+                    # then deselect the controlling armature...
+                    armature.select_set(False)
+                # and export only the deformer...
                 bpy.context.view_layer.objects.active = armature.data.jk_adc.armature
-                path = os.path.join(bpy.path.abspath(eport.path_actions), bpy.path.clean_name(eport.prefix_action + action.name) + ".fbx")
+                path = os.path.join(bpy.path.abspath(eport.path_actions), bpy.path.clean_name(eport.prefix_action + armature.name) + ".fbx")
                 existing = bpy.data.objects.get("Armature")
                 if existing:
-                    existing.name = armature.name
-                armature.name = "Armature"
+                    existing.name = armature.data.jk_adc.armature.name
+                armature.data.jk_adc.armature.name = "Armature"
                 armature.data.pose_position = 'POSE'
                 export_fbx(path, eport, True, types={'ARMATURE'})
         else:
-            if not armature.data.jk_adc.armature.animation_data:
-                armature.data.jk_adc.armature.animation_data_create()
-            # kill any object keyframes... (maybe add convert object to root motion option in future?)
-            for action in bpy.data.actions:
-                ob_curves = [fc for fc in action.fcurves if fc.data_path in ["location", "rotation_quaternion", "rotation_euler", "rotation_axis_angle", "scale"]]
-                if ob_curves:
-                    for ob_curve in ob_curves:
-                        action.fcurves.remove(ob_curve)
-            # bake all actions to the deform bones... (I'm not happy about this but it's a lot simpler than the alternatives)
-            bpy.ops.jk.adc_bake_deforms('EXEC_DEFAULT', armature=armature.name, bake_step=1, only_active=False)
-            # deselect everything and select the deforming armature...
-            bpy.ops.object.select_all(action='DESELECT')
-            armature.data.jk_adc.armature.select_set(True)
-            # if the nla should influence export...
-            if eport.fbx_props.use_nla or not eport.mute_nla:
-                # select the controlling armature and link it's animation data to the deformer...
-                armature.select_set(True)
-                bpy.context.view_layer.objects.active = armature
-                bpy.ops.object.make_links_data(type='ANIMATION')
-                # then get all the actions again so we have the baked ones too...
-                actions, _ = armature.data.jk_adc.get_actions(armature, only_active)
-                for source, baked in actions.items():
-                    # iterate through all the deformers NLA strips...
-                    for track in armature.data.jk_adc.armature.animation_data.nla_tracks:
-                        for strip in track.strips:
-                            # replacing source actions with baked ones...
-                            if strip.action == source:
-                                strip.action = baked
-                # then deselect the controlling armature...
-                armature.select_set(False)
-            # and export only the deformer...
-            bpy.context.view_layer.objects.active = armature.data.jk_adc.armature
-            path = os.path.join(bpy.path.abspath(eport.path_actions), bpy.path.clean_name(eport.prefix_action + armature.name) + ".fbx")
-            existing = bpy.data.objects.get("Armature")
-            if existing:
-                existing.name = armature.data.jk_adc.armature.name
-            armature.data.jk_adc.armature.name = "Armature"
-            armature.data.pose_position = 'POSE'
-            export_fbx(path, eport, True, types={'ARMATURE'})
+            print("No deformer for " + armature.name)
+
             
 def mesh_export(eport, sk_meshes, st_meshes):
     only_selected = True if len(sk_meshes) <= 1 and len(st_meshes) <= 1 else False
@@ -497,6 +523,7 @@ def run_export(eport):
     for armature in ac_armatures + sk_armatures:
         bpy.context.view_layer.objects.active = armature
         # if the armature doesn't have control/deform bones, give it some...
+        print(armature, armature.data.jk_adc.is_controller, armature.data.jk_adc.get_deformer())
         if not armature.data.jk_adc.is_controller:
             bpy.ops.jk.adc_edit_controls('EXEC_DEFAULT', action='ADD', only_deforms=True)
         # if it's deforms are combined, un-combine them...
@@ -511,11 +538,13 @@ def run_export(eport):
         else:
             # if they weren't hiding we'll need to select the deform armature... (it got deselected on invoke)
             armature.data.jk_adc.get_deformer().select_set(True)
+        print(armature, armature.data.jk_adc.is_controller, armature.data.jk_adc.get_deformer())
         # and make sure we have the control armature selected also...
         armature.select_set(True)
     bpy.ops.object.mode_set(mode='OBJECT')
     # scale everything that needs scaling...
     scale_objects(unit_scaling, eport.apply_location, eport.apply_rotation)
+    
     # if we are batch/cluster exporting actions, export them...
     if eport.actions:
         action_export(eport, ac_armatures)
