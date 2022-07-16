@@ -363,7 +363,7 @@ def export_s2u(use_selection): # ONLY SUPPORTS MESHES AND ARMATURES COME BACK AN
 def action_export(eport, ac_armatures):
     # for each action armature...
     for armature in ac_armatures:
-        print(armature, armature.data.jk_adc.is_controller, armature.data.jk_adc.get_deformer())
+        #print(armature, armature.data.jk_adc.is_controller, armature.data.jk_adc.get_deformer())
         if not armature.animation_data:
             armature.animation_data_create()
         deformer = armature.data.jk_adc.get_deformer()
@@ -408,8 +408,8 @@ def action_export(eport, ac_armatures):
                     armature.data.pose_position = 'POSE'
                     export_fbx(path, eport, True, types={'ARMATURE'})
             else:
-                if not armature.data.jk_adc.armature.animation_data:
-                    armature.data.jk_adc.armature.animation_data_create()
+                if not deformer.animation_data:
+                    deformer.animation_data_create()
                 # kill any object keyframes... (maybe add convert object to root motion option in future?)
                 for action in bpy.data.actions:
                     ob_curves = [fc for fc in action.fcurves if fc.data_path in ["location", "rotation_quaternion", "rotation_euler", "rotation_axis_angle", "scale"]]
@@ -420,7 +420,7 @@ def action_export(eport, ac_armatures):
                 bpy.ops.jk.adc_bake_deforms('EXEC_DEFAULT', armature=armature.name, bake_step=1, only_active=False)
                 # deselect everything and select the deforming armature...
                 bpy.ops.object.select_all(action='DESELECT')
-                armature.data.jk_adc.armature.select_set(True)
+                deformer.select_set(True)
                 # if the nla should influence export...
                 if eport.fbx_props.use_nla or not eport.mute_nla:
                     # select the controlling armature and link it's animation data to the deformer...
@@ -431,7 +431,7 @@ def action_export(eport, ac_armatures):
                     actions, _ = armature.data.jk_adc.get_actions(armature, only_active)
                     for source, baked in actions.items():
                         # iterate through all the deformers NLA strips...
-                        for track in armature.data.jk_adc.armature.animation_data.nla_tracks:
+                        for track in deformer.animation_data.nla_tracks:
                             for strip in track.strips:
                                 # replacing source actions with baked ones...
                                 if strip.action == source:
@@ -439,12 +439,12 @@ def action_export(eport, ac_armatures):
                     # then deselect the controlling armature...
                     armature.select_set(False)
                 # and export only the deformer...
-                bpy.context.view_layer.objects.active = armature.data.jk_adc.armature
+                bpy.context.view_layer.objects.active = deformer
                 path = os.path.join(bpy.path.abspath(eport.path_actions), bpy.path.clean_name(eport.prefix_action + armature.name) + ".fbx")
                 existing = bpy.data.objects.get("Armature")
                 if existing:
-                    existing.name = armature.data.jk_adc.armature.name
-                armature.data.jk_adc.armature.name = "Armature"
+                    existing.name = deformer.name
+                deformer.name = "Armature"
                 armature.data.pose_position = 'POSE'
                 export_fbx(path, eport, True, types={'ARMATURE'})
         else:
@@ -821,6 +821,7 @@ def import_armatures(iport, armatures, active):
                     bpy.ops.object.select_all(action='DESELECT')
                     bpy.context.view_layer.objects.active = active
                     active.select_set(True)
+                    deformer = active.data.jk_adc.get_deformer()
                     # if it's deforms are combined, un-combine them...
                     if active.data.jk_adc.use_combined:
                         active.data.jk_adc.use_combined = False  
@@ -829,18 +830,18 @@ def import_armatures(iport, armatures, active):
                         active.data.jk_adc.hide_deforms = False
                     else:
                         # if they weren't hiding we'll need to select the deform armature...
-                        active.data.jk_adc.armature.select_set(True)
+                        deformer.select_set(True)
                     # give the deform armature the action...
-                    if not active.data.jk_adc.armature.animation_data:
-                        active.data.jk_adc.armature.animation_data_create()
-                    active.data.jk_adc.armature.animation_data.action = action
+                    if not deformer.animation_data:
+                        deformer.animation_data_create()
+                    deformer.animation_data.action = action
                     
                     if active.data.jk_adc.mute_deforms:
                         active.data.jk_adc.mute_deforms = False
                     # and bake to the controls...
                     if not active.data.jk_adc.reverse_deforms:
                         active.data.jk_adc.reverse_deforms = True
-                    bpy.ops.jk.adc_bake_controls('EXEC_DEFAULT', armature=active.data.jk_adc.armature.name, bake_step=1, only_active=True)
+                    bpy.ops.jk.adc_bake_controls('EXEC_DEFAULT', armature=deformer.name, bake_step=1, only_active=True)
 
         # if any meshes using this armature should be deformed to the active armature...
         meshes = [ob for ob in bpy.data.objects if ob.type == 'MESH' and ob.find_armature() == armature]
@@ -897,7 +898,7 @@ def run_import(iport):
     existing_actions = {ac : ac.frame_range for ac in bpy.data.actions}
     removal_objects = {}
     # get the paths for what needs importing...
-    fbx_paths= get_fbx_paths(iport)
+    fbx_paths = get_fbx_paths(iport)
     armatures, sk_meshes, st_meshes = {}, [], []
     pre_fps = bpy.context.scene.render.fps
     # iterate on the fbx paths importing everything we want to import...          
@@ -924,6 +925,9 @@ def run_import(iport):
                     if get_armature_has_proportions(arm, new_bbs):
                         armature = arm
                         break
+            # rename all the actions to the FBX they came from... (No idea if FBX actually holds action names when there are multiples)
+            for new_action in new_actions.keys():
+                new_action.name = bpy.path.display_name_from_filepath(path)
             # if we have an armature to assign to...        
             if armature and armature != new_armature:
                 # append the new armature to be removed...
@@ -942,7 +946,7 @@ def run_import(iport):
                         new_mesh.parent = armature
             else:
                 # otherwise this is a new armature we'll want to process it...
-                armatures[new_armature] = new_actions#new_armatures[new_armature]
+                armatures[new_armature] = new_actions #new_armatures[new_armature]
         # if we are importing meshes from this fbx... 
         if bools['Meshes']:
             # we can just append the new meshes to their lists...
